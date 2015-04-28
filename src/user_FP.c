@@ -208,10 +208,10 @@ int course_map[X_GRID_SIZE * Y_GRID_SIZE] = 	// initialize grid map with course 
 	1,	0,	0,	0,	0,	0,	0,	1,
 	1,	1,	1,	0,	0,	1,	1,	1,
 	1,	0,	0,	0,	0,	0,	0,	1,
-	1,	0,	0,	0,	1,	0,	0,	1,
+	1,	0,	0,	0,	0,	1,	0,	1,
 	1,	0,	0,	0,	0,	0,	0,	1,
 	1,	0,	0,	1,	0,	0,	0,	1,
-	1,	0,	0,	0,	0,	0,	0,	1,
+	1,	0,	0,	1,	0,	0,	0,	1,
 	1,	0,	0,	0,	0,	0,	0,	1,
 	1,	1,	1,	1,	1,	1,	1,	1};
 
@@ -313,12 +313,12 @@ void ComWithLinux(void) {
 				ROBOTps.y,
 				255.0,
 				255.0,
-				course_map[33], course_map[34], course_map[35], course_map[36], course_map[37], course_map[38],
-				course_map[41], course_map[42], course_map[43], course_map[44], course_map[45], course_map[46],
-				course_map[49], course_map[50], course_map[51], course_map[52], course_map[53], course_map[54],
-				course_map[57], course_map[58], course_map[59], course_map[60], course_map[61], course_map[62],
-				course_map[65], course_map[66], course_map[67], course_map[68], course_map[69], course_map[70],
-				course_map[73], course_map[74], course_map[75], course_map[76], course_map[77], course_map[78]
+				course_map[38],  course_map[37],  course_map[36],  course_map[35], course_map[34], course_map[33],
+				course_map[46],  course_map[45],  course_map[44],  course_map[43], course_map[42], course_map[41],
+				course_map[54],  course_map[53],  course_map[52],  course_map[51], course_map[50], course_map[49],
+				course_map[62],  course_map[61],  course_map[60],  course_map[59], course_map[58], course_map[57],
+				course_map[70],  course_map[69],  course_map[68],  course_map[67], course_map[66], course_map[65],
+				course_map[78],  course_map[77],  course_map[76],  course_map[75], course_map[74], course_map[73]
 				);
 
 				for (i=0;i<ptrshrdmem->DSPSend_size;i++) {
