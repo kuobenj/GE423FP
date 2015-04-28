@@ -1,0 +1,39 @@
+********************************************************************************
+TMS320C6x Hex Converter                                                   v7.4.8
+********************************************************************************
+
+INPUT FILE NAME: <C:/ngraves2/repository/FP/FPProject\debug\FP.out>
+OUTPUT FORMAT:   Binary
+
+PHYSICAL MEMORY PARAMETERS
+   Default data width   :   8
+   Default memory width :   8
+   Default output width :   8
+
+BOOT LOADER PARAMETERS
+   Table Address: 0x0000, PAGE 0
+   Entry Point  : 0x1182a8c0
+
+
+OUTPUT TRANSLATION MAP
+--------------------------------------------------------------------------------
+00000000..0003ffff  Page=0  Memory Width=8  ROM Width=8  "SPIFLASH"
+--------------------------------------------------------------------------------
+   OUTPUT FILES: C:/ngraves2/repository/FP/FPProject\..\FP.bin [b0..b7]
+
+   CONTENTS: 00000000..0001eb43   BOOT TABLE
+                         .hwi_vec : btad=00000000  dest=1182b400 size=00000200
+                            .bios : btad=0000020c  dest=1181cda0 size=00004500
+                           .pinit : btad=00004714  dest=11825b14 size=0000000c
+                            .text : btad=00004728  dest=11800000 size=00015c00
+                           .cinit : btad=0001a330  dest=118212a0 size=00002874
+                          .switch : btad=0001cbac  dest=1182bee4 size=0000007c
+                         .gblinit : btad=0001cc30  dest=1182bf60 size=00000070
+                         .sysinit : btad=0001cca8  dest=1182a5a0 size=00000500
+                         .trcdata : btad=0001d1b0  dest=1182c078 size=0000000c
+                       .rtdx_text : btad=0001d1c4  dest=11825b20 size=00000fc0
+                           .const : btad=0001e18c  dest=11829ef0 size=00000695
+                            .args : btad=0001e82c  dest=11829eec size=00000004
+                           .trace : btad=0001e838  dest=1182b600 size=00000200
+                             .log : btad=0001ea40  dest=1182c00c size=00000030
+                             .sts : btad=0001ea78  dest=1182be24 size=000000c0
