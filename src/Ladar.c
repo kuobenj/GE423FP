@@ -369,7 +369,7 @@ void LADAR_Get_and_Process_Scan(void)
 		}
 		else
 		{// -- --  decode two bytes  to floats
-			 newLADARdistance[numReadings] = (float)decode2byteLADAR(&LADARinBuffer[i],(int)newLADARdistance[numReadings]);
+			 newLADARdistance[numReadings] = (float)decode2byteLADAR(&LADARinBuffer[i],(int)newLADARdistance[numReadings]) + 100;
 			 newLADARangle[numReadings] = (startAngle + numReadings*stepSize)*LADARps.theta;
 
 			 //find the left, center, and right values.

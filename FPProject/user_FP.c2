@@ -160,19 +160,17 @@ int errorcheck = 1;
 
 #define X_GRID_SIZE 8
 #define Y_GRID_SIZE 11
+#define HITS_THRESHOLD 10
 #define H_COST 1
 #define G_MOVE_COST 1
 #define G_TURN_COST 1
-#define HITS_THRESHOLD 40
-#define REC_CNT_THRESHOLD 400
 
 // Structure Declerations
 typedef struct tile {
 	int x;
 	int y;
 	char map;
-	int hits;
-	int recognized_cnt;
+	long hits;
 	float h;
 	float g;
 	float f;
@@ -190,9 +188,7 @@ typedef struct map_point {
 extern SEM_Obj SEM_a_star;
 
 // Global Variable Declarations
-// old way Dan Block found as a mistake
-//tile grid[X_GRID_SIZE * Y_GRID_SIZE - 1];
-tile grid[X_GRID_SIZE * Y_GRID_SIZE];
+tile grid[X_GRID_SIZE * Y_GRID_SIZE - 1];
 map_point target_points[8];
 map_point waypoints[50];
 int current_target = -1;
@@ -200,14 +196,11 @@ int current_waypoint = -1;
 int flag_new_path_calculating = 0;
 int flag_new_path = 0;
 int flag_bounds_error = 0;
+
+// coordinate transformations and object detection
 int obst_grid = 0;
 int x_grid_obst = 0;
 int y_grid_obst = 0;
-int old_map = 0;
-int new_map = 0;
-
-
-int cnt_new_path = 0;
 
 // initialize course map
 int course_map[X_GRID_SIZE * Y_GRID_SIZE] = 	// initialize grid map with course walls
@@ -322,12 +315,12 @@ void ComWithLinux(void) {
 				ROBOTps.y,
 				255.0,
 				255.0,
-				grid[38].map,  grid[37].map,  grid[36].map,  grid[35].map, grid[34].map, grid[33].map,
-				grid[46].map,  grid[45].map,  grid[44].map,  grid[43].map, grid[42].map, grid[41].map,
-				grid[54].map,  grid[53].map,  grid[52].map,  grid[51].map, grid[50].map, grid[49].map,
-				grid[62].map,  grid[61].map,  grid[60].map,  grid[59].map, grid[58].map, grid[57].map,
-				grid[70].map,  grid[69].map,  grid[68].map,  grid[67].map, grid[66].map, grid[65].map,
-				grid[78].map,  grid[77].map,  grid[76].map,  grid[75].map, grid[74].map, grid[73].map
+				course_map[38],  course_map[37],  course_map[36],  course_map[35], course_map[34], course_map[33],
+				course_map[46],  course_map[45],  course_map[44],  course_map[43], course_map[42], course_map[41],
+				course_map[54],  course_map[53],  course_map[52],  course_map[51], course_map[50], course_map[49],
+				course_map[62],  course_map[61],  course_map[60],  course_map[59], course_map[58], course_map[57],
+				course_map[70],  course_map[69],  course_map[68],  course_map[67], course_map[66], course_map[65],
+				course_map[78],  course_map[77],  course_map[76],  course_map[75], course_map[74], course_map[73]
 				);
 
 				for (i=0;i<ptrshrdmem->DSPSend_size;i++) {
@@ -352,26 +345,10 @@ void ComWithLinux(void) {
 //			}
 
 			// Flush or write back source
-//			BCACHE_wb((void *)ptrshrdmem,sizeof(sharedmemstruct),EDMA3_CACHE_WAIT);
-//
-//			CLR_DATAFORFILE_TO_LINUX;
-
-			// First make sure all scratch elements are zero
-			for (i=0;i<500;i++) {
-				ptrshrdmem->scratch[i] = 0;
-			}
-			// Write LADARdataX to scratch
-			for (i=0;i<228;i++) {
-				ptrshrdmem->scratch[i] = LADARdataX[i];
-			}
-			// Write LADARdataY to scratch
-			for (i=0;i<228;i++) {
-				ptrshrdmem->scratch[228+i] = LADARdataY[i];
-			}
-			// Flush or write back source
 			BCACHE_wb((void *)ptrshrdmem,sizeof(sharedmemstruct),EDMA3_CACHE_WAIT);
 
 			CLR_DATAFORFILE_TO_LINUX;
+
 		}
 
 		tskcount++;
@@ -533,14 +510,18 @@ Void main()
 		grid[i].x = i % X_GRID_SIZE;	// assign every grid space a x and y value
 		grid[i].y = i / X_GRID_SIZE;
 		grid[i].map = course_map[i];	// initialize map
-        grid[i].hits = 0;
+		if (grid[i].map) {
+            grid[i].hits = HITS_THRESHOLD;
+        }
+        else {
+            grid[i].hits = 0;
+        }
 		grid[i].h = 0;
 		grid[i].g = 0;
 		grid[i].f = 1000;
 		grid[i].link = i;	// link every grid space to itself
 		grid[i].open = 0;
 		grid[i].closed = 0;
-		grid[i].recognized_cnt = 0;
 	}
 
 	// initialize waypoints array
@@ -685,37 +666,10 @@ void RobotControl(void) {
 		ROBOTps.theta = x_pred[2][0];
 
 		// calculate new path if target is reached
-		if ((flag_new_path_calculating == 0) && (current_waypoint == -1)) {
-			flag_new_path = 1;
-			current_target++;
-		}
-
-//		// obstacle detection
-//		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
-//			old_map = grid[i].map;
-//			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
-//				grid[i].map = 1;
-//			}
-//			new_map = grid[i].map;
-//			// calculate new path if new obstacle is detected
-//			if ((flag_new_path_calculating == 0) && (new_map != old_map)) {
-//				flag_new_path = 1;
-//				cnt_new_path++;
-//			}
-//		}
-
-		// obstacle detection
-		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
-			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
-				grid[i].recognized_cnt++;
-			}
-
-			// calculate new path if new obstacle is detected
-			if ((flag_new_path_calculating == 0) && (grid[i].recognized_cnt == REC_CNT_THRESHOLD)) {
+		if (current_waypoint == -1)	{
+			if (flag_new_path_calculating == 0) {
 				flag_new_path = 1;
-				cnt_new_path++;
-				grid[i].map = 1;
-				grid[i].recognized_cnt++;
+				current_target++;
 			}
 		}
 
@@ -741,9 +695,7 @@ void RobotControl(void) {
 			}
 		}
 		
-		// removed by Dan Block
-		//if ((newLADARdata == 1) && (turn < 0.5)) {
-		if ((newLADARdata == 1)) {
+		if (newLADARdata == 1) {
 			newLADARdata = 0;
 			for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
 				grid[i].hits = 0;
@@ -760,26 +712,25 @@ void RobotControl(void) {
 
 				obst_grid = x_grid_obst + (y_grid_obst * X_GRID_SIZE);
 
-				if (obst_grid < (X_GRID_SIZE * Y_GRID_SIZE)) {
-					grid[obst_grid].hits++;
-				}
+				grid[obst_grid].hits++;
 			}
 		}
 
-//		if ((timecount%200) == 0) {
-//			LCDPrintfLine(1,"x:%.2f y:%.2f %d",ROBOTps.x,ROBOTps.y);
-//			LCDPrintfLine(2,"t:%.1f %d",ROBOTps.theta);
+//		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
+//			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD))
+//			{
+//				grid[i].map = 1;
+//			}
 //		}
 
 //		if ((timecount%200) == 0) {
-//			LCDPrintfLine(1,"%d %d %d %d %d", grid[33].hits, grid[44].hits, grid[50].hits, grid[53].hits, grid[67].hits);
-//			LCDPrintfLine(2,"%d %d %d %d %d", grid[33].map, grid[44].map, grid[50].map, grid[53].map, grid[67].map);
+//			LCDPrintfLine(1,"x:%.2f,y:%.2f",ROBOTps.x,ROBOTps.y);
+//			LCDPrintfLine(2,"t:%.1f,f:%.1f",ROBOTps.theta,previous_frame);
 //		}
 
 		if ((timecount%200)==0) {
-
-			LCDPrintfLine(1,"%d %d %d %d %d %d", current_waypoint, current_target, flag_new_path, flag_new_path_calculating, cnt_new_path, grid[44].recognized_cnt);
-			LCDPrintfLine(2,"%.0f %.0f %.0f %.0f %.0f", x_world_robot, y_world_robot, theta_world_robot, target_points[3].x, target_points[3].y);
+			LCDPrintfLine(1,"%.0f %.0f %d %d %d %d", waypoints[current_waypoint].x, waypoints[current_waypoint].y, current_waypoint, current_target, flag_new_path, flag_new_path_calculating);
+			LCDPrintfLine(2,"%.0f %.0f %.0f %.0f %.0f", x_world_robot, y_world_robot, theta_world_robot, y_world_target, target_points[current_target].x);
 		}
 
 		SetRobotOutputs(vref,turn,0,0,0,0,0,0,0,0);
@@ -1149,7 +1100,7 @@ void a_star (void) {
 						num_links++;
 					}
 					current_link = grid[target_grid].link;
-					for (i = 1; i < num_links; i++) {
+					for (; i < num_links; i++) {
 						waypoints[i].x = (grid[current_link].x - 4)*2.0 + 1;
 						waypoints[i].y = (grid[current_link].y - 4)*2.0 + 1;
 						current_link = grid[current_link].link;
