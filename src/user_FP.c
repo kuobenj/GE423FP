@@ -254,6 +254,18 @@ float x_world_target = 0;
 float y_world_target = 0;
 
 
+/*********************************Begin Some Ball Detect Vars***************/
+
+int blue_detected = 0;
+int orange_detected = 0;
+float blue_ball_array[6] = {-7.0 , 0.1, -7.0 , 0.2, -7.0 , 0.3};
+float orange_ball_array[6] = {-7.0 , 0.4, -7.0 , 0.5, -7.0 , 0.6};
+
+
+
+
+/*********************************End Some Ball Detect Vars***************/
+
 pose UpdateOptitrackStates(pose localROBOTps, int * flag);
 
 
@@ -303,42 +315,27 @@ void ComWithLinux(void) {
 				// you would do something like this
 				// ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f",var1,var2,var3,var4);
 
-				// ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f "
-				// "%.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f ",
-				// ROBOTps.x,
-				// ROBOTps.y,
-				// 255.0,
-				// 255.0,
-				// course_map[0], course_map[1], course_map[2], course_map[3], course_map[4], course_map[5], course_map[6], course_map[7],
-				// course_map[8], course_map[9], course_map[10], course_map[11], course_map[12], course_map[13], course_map[14], course_map[15],
-				// course_map[16], course_map[17], course_map[18], course_map[19], course_map[20], course_map[21], course_map[22], course_map[23],
-				// course_map[24], course_map[25], course_map[26], course_map[27], course_map[28], course_map[29], course_map[30], course_map[31],
-				// course_map[32], course_map[33], course_map[34], course_map[35], course_map[36], course_map[37], course_map[38], course_map[39],
-				// course_map[40], course_map[41], course_map[42], course_map[43], course_map[44], course_map[45], course_map[46], course_map[47],
-				// course_map[48], course_map[49], course_map[50], course_map[51], course_map[52], course_map[53], course_map[54], course_map[55],
-				// course_map[56], course_map[57], course_map[58], course_map[59], course_map[60], course_map[61], course_map[62], course_map[63],
-				// course_map[64], course_map[65], course_map[66], course_map[67], course_map[68], course_map[69], course_map[70], course_map[71],
-				// course_map[72], course_map[73], course_map[74], course_map[75], course_map[76], course_map[77], course_map[78], course_map[79],
-				// course_map[80], course_map[81], course_map[82], course_map[83], course_map[84], course_map[85], course_map[86], course_map[87]
-				// );
+				/*
+				I figure that should document the com protocol that we're doing
+				The first 2 floats are the robot position in the course
+				The second 2 floast aren't sending anything at the moment but can be used for future functionality
+				The first 36 ints are the 36 positions for the obsticals 
+				The Next 6 floats are the positions for our balls
+					We will send the first 6 as detected orange balls
+					The second 6 will be the blue balls
+					The coordinates are going to be sent in x y x y x y fashion
 
+					Note: this will work because there will be a max of 3 of each color
+				*/
 				ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f "
 				"%d %d %d %d %d %d "
 				"%d %d %d %d %d %d "
 				"%d %d %d %d %d %d "
 				"%d %d %d %d %d %d "
 				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d ",
+				"%d %d %d %d %d %d "
+				"%.1f %.1f %.1f %.1f %.1f %.1f "
+				"%.1f %.1f %.1f %.1f %.1f %.1f ",
 				ROBOTps.x,
 				ROBOTps.y,
 				255.0,
@@ -348,7 +345,9 @@ void ComWithLinux(void) {
 				grid[54].map,  grid[53].map,  grid[52].map,  grid[51].map, grid[50].map, grid[49].map,
 				grid[62].map,  grid[61].map,  grid[60].map,  grid[59].map, grid[58].map, grid[57].map,
 				grid[70].map,  grid[69].map,  grid[68].map,  grid[67].map, grid[66].map, grid[65].map,
-				grid[78].map,  grid[77].map,  grid[76].map,  grid[75].map, grid[74].map, grid[73].map
+				grid[78].map,  grid[77].map,  grid[76].map,  grid[75].map, grid[74].map, grid[73].map,
+				blue_ball_array[0], blue_ball_array[1], blue_ball_array[2], blue_ball_array[3], blue_ball_array[4], blue_ball_array[6],
+				orange_ball_array[0], orange_ball_array[1], orange_ball_array[2], orange_ball_array[3], orange_ball_array[4], orange_ball_array[6]
 				);
 
 				for (i=0;i<ptrshrdmem->DSPSend_size;i++) {
