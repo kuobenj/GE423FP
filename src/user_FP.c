@@ -164,13 +164,13 @@ int errorcheck = 1;
 #define G_MOVE_COST 1
 #define G_TURN_COST 1
 #define HITS_THRESHOLD 40
-#define REC_CNT_THRESHOLD 400
+#define REC_CNT_THRESHOLD 300
 
 // Structure Declerations
 typedef struct tile {
 	int x;
 	int y;
-	char map;
+	int map;
 	int hits;
 	int recognized_cnt;
 	float h;
@@ -193,9 +193,9 @@ extern SEM_Obj SEM_a_star;
 // old way Dan Block found as a mistake
 //tile grid[X_GRID_SIZE * Y_GRID_SIZE - 1];
 tile grid[X_GRID_SIZE * Y_GRID_SIZE];
-map_point target_points[8];
+map_point target_points[9];
 map_point waypoints[50];
-int current_target = -1;
+int current_target = 0;	// skip first target point
 int current_waypoint = -1;
 int flag_new_path_calculating = 0;
 int flag_new_path = 0;
@@ -205,9 +205,6 @@ int x_grid_obst = 0;
 int y_grid_obst = 0;
 int old_map = 0;
 int new_map = 0;
-
-
-int cnt_new_path = 0;
 
 // initialize course map
 int course_map[X_GRID_SIZE * Y_GRID_SIZE] = 	// initialize grid map with course walls
@@ -222,6 +219,30 @@ int course_map[X_GRID_SIZE * Y_GRID_SIZE] = 	// initialize grid map with course 
 	1,	0,	0,	0,	0,	0,	0,	1,
 	1,	0,	0,	0,	0,	0,	0,	1,
 	1,	1,	1,	1,	1,	1,	1,	1};
+
+// A* Variables
+int x_grid_robot = 0;
+int y_grid_robot = 0;
+int x_grid_target = 0;
+int y_grid_target = 0;
+int robot_grid = 0;
+int target_grid = 0;
+int flag_path_found = 0;
+int task_current = 0;
+int adjacent = 0;
+int	link_found = 0;
+int current_link = 0;
+int flag_list_started = 0;
+int flag_error_invalid_obstacle = 0;
+int flag_error_no_path_found = 0;
+int old_current = 0;
+int robot_direction = 0;
+int current_direction = 0;
+int adjacent_direction = 0;
+float old_f = 0;
+float new_g = 0;
+float new_f = 0;
+int already_passed_six = 0;
 
 // "Shared" A* Variables
 long a_star_cnt = 0;
@@ -549,6 +570,16 @@ Void main()
 		waypoints[i].y = 0;
 	}
 
+	// initialize target points
+	target_points[0].x = 0;			target_points[0].y = -1;	// starting point
+	target_points[1].x = -5;		target_points[1].y = -3;	// point 1
+	target_points[2].x = 3;			target_points[2].y = 7; 	// point 2
+	target_points[3].x = -3;		target_points[3].y = 7; 	// point 3
+	target_points[4].x = 5;			target_points[4].y = -3; 	// point 4
+	target_points[5].x = 0;			target_points[5].y = 11; 	// point 5
+	target_points[6].x = -2;		target_points[6].y = -4; 	// blue chute
+	target_points[7].x = 2;			target_points[7].y = -4; 	// orange chute
+	target_points[8].x = 0;			target_points[8].y = 0; 	// finishing point
 }
 	
 
@@ -700,7 +731,6 @@ void RobotControl(void) {
 //			// calculate new path if new obstacle is detected
 //			if ((flag_new_path_calculating == 0) && (new_map != old_map)) {
 //				flag_new_path = 1;
-//				cnt_new_path++;
 //			}
 //		}
 
@@ -713,7 +743,6 @@ void RobotControl(void) {
 			// calculate new path if new obstacle is detected
 			if ((flag_new_path_calculating == 0) && (grid[i].recognized_cnt == REC_CNT_THRESHOLD)) {
 				flag_new_path = 1;
-				cnt_new_path++;
 				grid[i].map = 1;
 				grid[i].recognized_cnt++;
 			}
@@ -726,8 +755,8 @@ void RobotControl(void) {
 			SEM_post (&SEM_a_star);
 		}
 
-		// stop robot movement if A* is running
-		if (flag_new_path_calculating) {
+		// stop robot movement if A* is running or if robot has reached finishing point
+		if ((flag_new_path_calculating) || (current_target > 8)) {
 			vref = 0;
 			turn = 0;
 		}
@@ -736,13 +765,11 @@ void RobotControl(void) {
 				flag_bounds_error = 1;
 			}
 			// uses xy code to step through an array of positions
-			if (!flag_bounds_error && xy_control(&vref, &turn, 1.0, ROBOTps.x, ROBOTps.y, waypoints[current_waypoint].x, waypoints[current_waypoint].y, ROBOTps.theta, 0.25, 0.5)) {
+			if (!flag_bounds_error && xy_control(&vref, &turn, 2.0, ROBOTps.x, ROBOTps.y, waypoints[current_waypoint].x, waypoints[current_waypoint].y, ROBOTps.theta, 0.25, 0.75)) {
 				current_waypoint--; // "remove" waypoint from stack
 			}
 		}
 		
-		// removed by Dan Block
-		//if ((newLADARdata == 1) && (turn < 0.5)) {
 		if ((newLADARdata == 1)) {
 			newLADARdata = 0;
 			for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
@@ -760,26 +787,16 @@ void RobotControl(void) {
 
 				obst_grid = x_grid_obst + (y_grid_obst * X_GRID_SIZE);
 
-				if (obst_grid < (X_GRID_SIZE * Y_GRID_SIZE)) {
+				if (obst_grid < (X_GRID_SIZE * Y_GRID_SIZE) && (fabsf(turn) < 0.5)) {
 					grid[obst_grid].hits++;
 				}
 			}
 		}
 
-//		if ((timecount%200) == 0) {
-//			LCDPrintfLine(1,"x:%.2f y:%.2f %d",ROBOTps.x,ROBOTps.y);
-//			LCDPrintfLine(2,"t:%.1f %d",ROBOTps.theta);
-//		}
-
-//		if ((timecount%200) == 0) {
-//			LCDPrintfLine(1,"%d %d %d %d %d", grid[33].hits, grid[44].hits, grid[50].hits, grid[53].hits, grid[67].hits);
-//			LCDPrintfLine(2,"%d %d %d %d %d", grid[33].map, grid[44].map, grid[50].map, grid[53].map, grid[67].map);
-//		}
-
 		if ((timecount%200)==0) {
 
-			LCDPrintfLine(1,"%d %d %d %d %d %d", current_waypoint, current_target, flag_new_path, flag_new_path_calculating, cnt_new_path, grid[44].recognized_cnt);
-			LCDPrintfLine(2,"%.0f %.0f %.0f %.0f %.0f", x_world_robot, y_world_robot, theta_world_robot, target_points[3].x, target_points[3].y);
+			LCDPrintfLine(1,"X%.0f Y%.0f T%.0f", x_world_robot, y_world_robot, theta_world_robot);
+			LCDPrintfLine(2,"A*%d WX%.0f WY%.0f CT%d", flag_new_path_calculating, waypoints[current_waypoint].x, waypoints[current_waypoint].y, current_target);
 		}
 
 		SetRobotOutputs(vref,turn,0,0,0,0,0,0,0,0);
@@ -893,48 +910,11 @@ pose UpdateOptitrackStates(pose localROBOTps, int * flag) {
 
 // A* Path Planning Algorithm
 void a_star (void) {
-//	static float x_world_robot = 0;
-//	static float y_world_robot = 0;
-//	static float theta_world_robot = 0;
-//	static float x_world_target = 0;
-//	static float y_world_target = 0;
-
-	static int x_grid_robot = 0;
-    static int y_grid_robot = 0;
-    static int x_grid_target = 0;
-    static int y_grid_target = 0;
-    static int i = 0;
-	static int robot_grid = 0;
-	static int target_grid = 0;
-	static int flag_path_found = 0;
-	static int current = 0;
-	static int adjacent = 0;
-	static int	link_found = 0;
-	static int current_link = 0;
-	static int flag_list_started = 0;
-	static int flag_error_invalid_obstacle = 0;
-	static int flag_error_no_path_found = 0;
-	static int old_current = 0;
-    static int robot_direction = 0;
-    static int current_direction = 0;
-    static int adjacent_direction = 0;
-    static float old_f = 0;
-    static float new_g = 0;
-    static float new_f = 0;
+    int i = 0;
 
 	while (1) {
 		SEM_pend (&SEM_a_star, SYS_FOREVER);
 		a_star_cnt++;
-
-		// initialize target points
-		target_points[0].x = 0;			target_points[0].y = -1;	// starting point
-		target_points[1].x = -5;		target_points[1].y = -3;	// point 1
-		target_points[2].x = 3;			target_points[2].y = 7; 	// point 2
-		target_points[3].x = -3;		target_points[3].y = 7; 	// point 3
-		target_points[4].x = 5;			target_points[4].y = -3; 	// point 4
-		target_points[5].x = 0;			target_points[5].y = 11; 	// point 5
-		target_points[6].x = -2;		target_points[6].y = -4; 	// blue chute
-		target_points[7].x = 2;			target_points[7].y = -4; 	// orange chute
 
 		// inputs to A* algorithm
 		x_world_robot = ROBOTps.x;
@@ -952,7 +932,7 @@ void a_star (void) {
 		robot_grid = 0;
 		target_grid = 0;
 		flag_path_found = 0;
-		current = 0;
+		task_current = 0;
 		adjacent = 0;
 		link_found = 0;
 		current_link = 0;
@@ -1031,42 +1011,42 @@ void a_star (void) {
 				robot_direction = -1;
 			}
 
-			current = robot_grid;
+			task_current = robot_grid;
 			if (flag_error_invalid_obstacle == 0) {
 				while (flag_path_found == 0) {
 					for (i = 0; i < 4; i++) {
 						// add grid space to closed list and remove from open list
-						grid[current].closed = 1;
-						grid[current].open = 0;
+						grid[task_current].closed = 1;
+						grid[task_current].open = 0;
 
 						// check all 4 adjacent grid spaces
 						// note that edge cases do not need to be checked for because the map has a 1 grid space buffer around entire outside
 						switch (i) {
 							// check grid space to right
 							case 0:
-								adjacent = current + 1;
+								adjacent = task_current + 1;
 								break;
 							// check grid space to left
 							case 1:
-								adjacent = current - 1;
+								adjacent = task_current - 1;
 								break;
 							// check grid space above
 							case 2:
-								adjacent = current + X_GRID_SIZE;
+								adjacent = task_current + X_GRID_SIZE;
 								break;
 							// check grid space below
 							case 3:
-								adjacent = current - X_GRID_SIZE;
+								adjacent = task_current - X_GRID_SIZE;
 								break;
 						}
 
 						// find current grid link direction
-						current_direction = current - grid[current].link;
-						if (current == robot_grid) {
+						current_direction = task_current - grid[task_current].link;
+						if (task_current == robot_grid) {
 							current_direction = robot_direction;
 						}
 						// find adjacent grid direction
-						adjacent_direction = adjacent - current;
+						adjacent_direction = adjacent - task_current;
 
 						// check if adjacent grid space is target grid space
 						if (adjacent == target_grid) {
@@ -1081,7 +1061,7 @@ void a_star (void) {
 							// check if adjacent grid space is on open list, calculate G and F value, and assign parent
 							if (grid[adjacent].open) {
 								old_f = grid[adjacent].f;
-								new_g = grid[current].g + G_MOVE_COST;
+								new_g = grid[task_current].g + G_MOVE_COST;
 								// add extra movement cost for turning
 								if (adjacent_direction != current_direction) {
 									new_g += G_TURN_COST;
@@ -1091,31 +1071,31 @@ void a_star (void) {
 								if (new_f < old_f) {
 									grid[adjacent].g = new_g;
 									grid[adjacent].f = new_f;
-									grid[adjacent].link = current;
+									grid[adjacent].link = task_current;
 								}
 							}
 						}
 					}
 
 					// determine next grid space to be analyzed based on lowest F value
-					old_current = current;
+					old_current = task_current;
 					for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
 						// start with first grid space on open list
 						if (grid[i].open) {
 							if (flag_list_started == 0) {
-								current = i;
+								task_current = i;
 								flag_list_started = 1;
 							}
 							// calculate grid space with lowest F value
-							if (grid[i].f < grid[current].f) {
-								current = i;
+							if (grid[i].f < grid[task_current].f) {
+								task_current = i;
 							}
 						}
 					}
 					flag_list_started = 0;
 
 					// report error if no path is found
-					if (current == old_current) {
+					if (task_current == old_current) {
 						flag_error_no_path_found = 1;
 					}
 				}
@@ -1135,24 +1115,36 @@ void a_star (void) {
 					}
 
 					// update waypoints array with new path
-					// disregard robot grid space
-					// disregard target grid space
+					// and target grid space unless target point is point 5
 					waypoints[0].x = x_world_target;
 					waypoints[0].y = y_world_target;
-					if (((((grid[current_link].x - 4)*2.0 + 1) == x_world_target) && ((grid[current_link].y - 4)*2.0 + 1) == y_world_target)) {
-						i = 1;
-					}
-					else {
+
+					// disregard target grid space unless target point is point 5
+					if (current_target == 5) {
 						waypoints[1].x = (grid[target_grid].x - 4)*2.0 + 1;
 						waypoints[1].y = (grid[target_grid].y - 4)*2.0 + 1;
 						i = 2;
 						num_links++;
 					}
+					else {
+						i = 1;
+					}
+
 					current_link = grid[target_grid].link;
-					for (i = 1; i < num_links; i++) {
+					for (; i < num_links; i++) {
 						waypoints[i].x = (grid[current_link].x - 4)*2.0 + 1;
 						waypoints[i].y = (grid[current_link].y - 4)*2.0 + 1;
-						current_link = grid[current_link].link;
+						if (i < (num_links - 1)) {
+							current_link = grid[current_link].link;
+						}
+					}
+
+					// disregard robot grid space unless target point is point 6 and the planned path is to the right
+					if ((current_target == 6) && ((current_link == 68) || (current_link == 77)) && (already_passed_six == 0)) {
+						waypoints[num_links].x = (grid[76].x - 4)*2.0 + 1;
+						waypoints[num_links].y = (grid[76].y - 4)*2.0 + 1;
+						num_links++;
+						already_passed_six = 1;
 					}
 				}
 			}

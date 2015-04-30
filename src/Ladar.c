@@ -40,6 +40,8 @@
 #include "xy.h"
 #include "ladar.h"
 
+#define LADAR_ADD_DIST 100
+
 //SWAP IS USED FOR LINE ALGORITHM -- this is a very fast & efficient routine to switch two numbers using XOR
 #define SWAP(x,y) ((x) ^= (y) ^= (x) ^= (y))
 
@@ -369,7 +371,7 @@ void LADAR_Get_and_Process_Scan(void)
 		}
 		else
 		{// -- --  decode two bytes  to floats
-			 newLADARdistance[numReadings] = (float)decode2byteLADAR(&LADARinBuffer[i],(int)newLADARdistance[numReadings]) + 100;
+			 newLADARdistance[numReadings] = (float)decode2byteLADAR(&LADARinBuffer[i],(int)newLADARdistance[numReadings]) + LADAR_ADD_DIST;
 			 newLADARangle[numReadings] = (startAngle + numReadings*stepSize)*LADARps.theta;
 
 			 //find the left, center, and right values.
