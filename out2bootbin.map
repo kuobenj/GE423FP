@@ -12,7 +12,7 @@ PHYSICAL MEMORY PARAMETERS
 
 BOOT LOADER PARAMETERS
    Table Address: 0x0000, PAGE 0
-   Entry Point  : 0x1182b100
+   Entry Point  : 0x1182b0a0
 
 
 OUTPUT TRANSLATION MAP
@@ -21,19 +21,19 @@ OUTPUT TRANSLATION MAP
 --------------------------------------------------------------------------------
    OUTPUT FILES: C:/ngraves2/repository/FP/FPProject\..\FP.bin [b0..b7]
 
-   CONTENTS: 00000000..0001f0eb   BOOT TABLE
-                         .hwi_vec : btad=00000000  dest=1182b800 size=00000200
-                            .bios : btad=0000020c  dest=1181d160 size=00004500
-                           .pinit : btad=00004714  dest=11825f74 size=0000000c
-                            .text : btad=00004728  dest=11800000 size=000160e0
-                           .cinit : btad=0001a810  dest=11821660 size=00002904
-                          .switch : btad=0001d11c  dest=1182c344 size=0000007c
-                         .gblinit : btad=0001d1a0  dest=1182c3c0 size=00000070
-                         .sysinit : btad=0001d218  dest=1182ade0 size=00000500
-                         .trcdata : btad=0001d720  dest=1182b2e0 size=0000000c
-                       .rtdx_text : btad=0001d734  dest=11825f80 size=00000fc0
-                           .const : btad=0001e6fc  dest=1182a708 size=000006cd
-                            .args : btad=0001edd4  dest=1182a704 size=00000004
-                           .trace : btad=0001ede0  dest=1182ba00 size=00000200
-                             .log : btad=0001efe8  dest=1182c4ac size=00000030
-                             .sts : btad=0001f020  dest=11827f40 size=000000c0
+   CONTENTS: 00000000..0001f14f   BOOT TABLE
+                         .hwi_vec : btad=00000000  dest=1182bc00 size=00000200
+                            .bios : btad=0000020c  dest=1181d260 size=00004500
+                           .pinit : btad=00004714  dest=11826074 size=0000000c
+                            .text : btad=00004728  dest=11800000 size=000161a0
+                           .cinit : btad=0001a8d0  dest=11821760 size=00002904
+                          .switch : btad=0001d1dc  dest=1182bb78 size=0000007c
+                         .gblinit : btad=0001d260  dest=1182c484 size=00000070
+                         .sysinit : btad=0001d2d8  dest=1182ad80 size=00000500
+                         .trcdata : btad=0001d7e0  dest=1182bbf4 size=0000000c
+                       .rtdx_text : btad=0001d7f4  dest=11826080 size=00000fc0
+                           .const : btad=0001e7bc  dest=1182a708 size=00000674
+                            .args : btad=0001ee38  dest=11827ffc size=00000004
+                           .trace : btad=0001ee44  dest=11827c40 size=00000200
+                             .log : btad=0001f04c  dest=1182c4f4 size=00000030
+                             .sts : btad=0001f084  dest=1182c3c4 size=000000c0

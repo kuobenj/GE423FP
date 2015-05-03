@@ -258,8 +258,8 @@ float y_world_target = 0;
 
 int blue_detected = 0;
 int orange_detected = 0;
-float blue_ball_array[6] = {-7.0 , 0.1, -7.0 , 0.2, -7.0 , 0.3};
-float orange_ball_array[6] = {-7.0 , 0.4, -7.0 , 0.5, -7.0 , 0.6};
+float blue_ball_array[6] = {-7.0, 0.0, -7.0, 0.3, -7.0, 0.6};
+float orange_ball_array[6] = {-7.0, 0.9, -7.0, 1.2, -7.0, 1.5};
 
 
 
@@ -315,6 +315,41 @@ void ComWithLinux(void) {
 				// you would do something like this
 				// ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f",var1,var2,var3,var4);
 
+				// /*
+				// I figure that should document the com protocol that we're doing
+				// The first 2 floats are the robot position in the course
+				// The second 2 floast aren't sending anything at the moment but can be used for future functionality
+				// The first 36 ints are the 36 positions for the obsticals 
+				// The Next 6 floats are the positions for our balls
+				// 	We will send the first 6 as detected orange balls
+				// 	The second 6 will be the blue balls
+				// 	The coordinates are going to be sent in x y x y x y fashion
+
+				// 	Note: this will work because there will be a max of 3 of each color
+				// */
+				// ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f "
+				// "%d %d %d %d %d %d "
+				// "%d %d %d %d %d %d "
+				// "%d %d %d %d %d %d "
+				// "%d %d %d %d %d %d "
+				// "%d %d %d %d %d %d "
+				// "%d %d %d %d %d %d "
+				// "%.1f %.1f %.1f %.1f %.1f %.1f "
+				// "%.1f %.1f %.1f %.1f %.1f %.1f ",
+				// ROBOTps.x,
+				// ROBOTps.y,
+				// 255.0,
+				// 255.0,
+				// grid[38].map,  grid[37].map,  grid[36].map,  grid[35].map, grid[34].map, grid[33].map,
+				// grid[46].map,  grid[45].map,  grid[44].map,  grid[43].map, grid[42].map, grid[41].map,
+				// grid[54].map,  grid[53].map,  grid[52].map,  grid[51].map, grid[50].map, grid[49].map,
+				// grid[62].map,  grid[61].map,  grid[60].map,  grid[59].map, grid[58].map, grid[57].map,
+				// grid[70].map,  grid[69].map,  grid[68].map,  grid[67].map, grid[66].map, grid[65].map,
+				// grid[78].map,  grid[77].map,  grid[76].map,  grid[75].map, grid[74].map, grid[73].map,
+				// blue_ball_array[0], blue_ball_array[1], blue_ball_array[2], blue_ball_array[3], blue_ball_array[4], blue_ball_array[6],
+				// orange_ball_array[0], orange_ball_array[1], orange_ball_array[2], orange_ball_array[3], orange_ball_array[4], orange_ball_array[6]
+				// );
+
 				/*
 				I figure that should document the com protocol that we're doing
 				The first 2 floats are the robot position in the course
@@ -328,26 +363,26 @@ void ComWithLinux(void) {
 					Note: this will work because there will be a max of 3 of each color
 				*/
 				ptrshrdmem->DSPSend_size = sprintf(toLinuxstring,"%.1f %.1f %.1f %.1f "
-				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d "
-				"%d %d %d %d %d %d "
+				"%o "
+				"%o "
+				"%o "
+				"%o "
+				"%o "
+				"%o "
 				"%.1f %.1f %.1f %.1f %.1f %.1f "
 				"%.1f %.1f %.1f %.1f %.1f %.1f ",
 				ROBOTps.x,
 				ROBOTps.y,
 				255.0,
 				255.0,
-				grid[38].map,  grid[37].map,  grid[36].map,  grid[35].map, grid[34].map, grid[33].map,
-				grid[46].map,  grid[45].map,  grid[44].map,  grid[43].map, grid[42].map, grid[41].map,
-				grid[54].map,  grid[53].map,  grid[52].map,  grid[51].map, grid[50].map, grid[49].map,
-				grid[62].map,  grid[61].map,  grid[60].map,  grid[59].map, grid[58].map, grid[57].map,
-				grid[70].map,  grid[69].map,  grid[68].map,  grid[67].map, grid[66].map, grid[65].map,
-				grid[78].map,  grid[77].map,  grid[76].map,  grid[75].map, grid[74].map, grid[73].map,
-				blue_ball_array[0], blue_ball_array[1], blue_ball_array[2], blue_ball_array[3], blue_ball_array[4], blue_ball_array[6],
-				orange_ball_array[0], orange_ball_array[1], orange_ball_array[2], orange_ball_array[3], orange_ball_array[4], orange_ball_array[6]
+				grid[38].map | (grid[37].map << 1) |  (grid[36].map << 2) |  (grid[35].map << 3) | (grid[34].map << 4) | (grid[33].map << 5),
+				grid[46].map | (grid[45].map << 1) |  (grid[44].map << 2) |  (grid[43].map << 3) | (grid[42].map << 4) | (grid[41].map << 5),
+				grid[54].map | (grid[53].map << 1) |  (grid[52].map << 2) |  (grid[51].map << 3) | (grid[50].map << 4) | (grid[49].map << 5),
+				grid[62].map | (grid[61].map << 1) |  (grid[60].map << 2) |  (grid[59].map << 3) | (grid[58].map << 4) | (grid[57].map << 5),
+				grid[70].map | (grid[69].map << 1) |  (grid[68].map << 2) |  (grid[67].map << 3) | (grid[66].map << 4) | (grid[65].map << 5),
+				grid[78].map | (grid[77].map << 1) |  (grid[76].map << 2) |  (grid[75].map << 3) | (grid[74].map << 4) | (grid[73].map << 5),
+				blue_ball_array[0], blue_ball_array[1], blue_ball_array[2], blue_ball_array[3], blue_ball_array[4], blue_ball_array[5],
+				orange_ball_array[0], orange_ball_array[1], orange_ball_array[2], orange_ball_array[3], orange_ball_array[4], orange_ball_array[5]
 				);
 
 				for (i=0;i<ptrshrdmem->DSPSend_size;i++) {
