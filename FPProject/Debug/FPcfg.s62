@@ -5,7 +5,7 @@
 ;; INPUT FP.cdb
 
 ;; CONFIGURATION/VERSION INFORMATION
-	.asg "Mon Apr 27 12:11:31 2015", VERS$DATE
+	.asg "Sun May 03 20:40:51 2015", VERS$DATE
 
 ;; PROLOGUE
 	.include FPcfg.h62

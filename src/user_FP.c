@@ -152,6 +152,35 @@ volatile int temp_trackableID = -1;
 int trackableID = -1;
 int errorcheck = 1;
 
+
+//data for the ball following
+int blue_x = 0;
+int blue_y = 0;
+int blue_num_pix = 0;
+int blue_num_obj = 0;
+int new_blue_x = 0;
+int new_blue_y = 0;
+int new_blue_num_pix = 0;
+int new_blue_num_obj = 0;
+int red_x = 0;
+int red_y = 0;
+int red_num_pix = 0;
+int red_num_obj = 0;
+int new_red_x = 0;
+int new_red_y = 0;
+int new_red_num_pix = 0;
+int new_red_num_obj = 0;
+
+float Kp_ball = 0.05;
+float blue_error = 0;
+float red_error = 0;
+float follow_ref = 0;
+
+float blue_dist = 0.0;
+float red_dist = 0.0;
+
+extern int new_coordata;
+
 // Path Planning Variables
 // Format Coordinates as "variable"_"coord frame"_"object"
 // H represents heuristic
@@ -617,6 +646,21 @@ void RobotControl(void) {
 		}
 	}
 	
+	// get data from ColorVision.c
+	if (new_coordata) {
+		blue_x = new_blue_x;
+		blue_y = new_blue_y;
+		blue_num_pix = new_blue_num_pix;
+		blue_num_obj = new_blue_num_obj;
+
+		red_x = new_red_x;
+		red_y = new_red_y;
+		red_num_pix = new_red_num_pix;
+		red_num_obj = new_red_num_obj;
+
+		new_coordata = 0;
+	}
+
 	if (GET_OPTITRACKDATA_FROM_LINUX) {
 
 		if (new_optitrack == 0) {
@@ -792,6 +836,37 @@ void RobotControl(void) {
 				}
 			}
 		}
+
+
+		// calculate blue error
+		blue_error = follow_ref - blue_x;
+		red_error = follow_ref - red_x;
+
+
+		// calculate blue golf ball distance
+		if ((-0.0098*blue_y + 0.37) != 0) {
+			blue_dist = 1/(-0.0098*blue_y + 0.37);
+		}
+		if ((-0.0098*red_y + 0.37) != 0) {
+			red_dist = 1/(-0.0098*red_y + 0.37);
+		}
+	    vref = 1.0;
+	    if (blue_num_obj >= 1 && red_num_obj >= 1){
+	    	if (blue_dist >= red_dist){
+	    		turn = Kp_ball * blue_error;
+	    	}
+	    	else{
+	    		turn = Kp_ball * red_error;
+	    	}
+	    }
+	    else if (blue_num_obj >= 1){
+	    	turn = Kp_ball * blue_error;
+	    }
+	    else if (red_num_obj >= 1){
+	    	turn = Kp_ball * red_error;
+	    }
+
+
 
 		if ((timecount%200)==0) {
 
