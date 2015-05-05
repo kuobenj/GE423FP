@@ -174,10 +174,13 @@ int new_red_num_obj = 0;
 float Kp_ball = 0.05;
 float blue_error = 0;
 float red_error = 0;
-float follow_ref = 0;
+float blue_follow_ref = -30.0;
+float red_follow_ref = 30.0;
 
 float blue_dist = 0.0;
 float red_dist = 0.0;
+
+int timestart = 1000;
 
 extern int new_coordata;
 
@@ -281,6 +284,14 @@ float y_world_robot = 0;
 float theta_world_robot = 0;
 float x_world_target = 0;
 float y_world_target = 0;
+
+/* Begin State Machine State Declarations */
+#define PATH_NAV 0
+#define BALL_NAV 1
+#define BALL_DUMP 2
+
+char nav_state = PATH_NAV;
+/* End State Machine State Declarations */
 
 
 pose UpdateOptitrackStates(pose localROBOTps, int * flag);
@@ -659,6 +670,9 @@ void RobotControl(void) {
 		red_num_obj = new_red_num_obj;
 
 		new_coordata = 0;
+		timestart = 1000;
+		if ((blue_num_pix > 5) || (red_num_pix > 5))
+			nav_state = BALL_NAV;	
 	}
 
 	if (GET_OPTITRACKDATA_FROM_LINUX) {
@@ -701,171 +715,183 @@ void RobotControl(void) {
 		SetRobotOutputs(0,0,0,0,0,0,0,0,0,0);
 	}
 	else {
+		switch(nav_state){
+			case PATH_NAV:
+				gyro_angle = gyro_angle - ((gyro-gyro_zero) + old_gyro)*.0005 + gyro_drift; 
+				old_gyro = gyro-gyro_zero;
+				gyro_radians = (gyro_angle * (PI/180.0)*400.0*gyro4x_gain);
 
-		gyro_angle = gyro_angle - ((gyro-gyro_zero) + old_gyro)*.0005 + gyro_drift; 
-		old_gyro = gyro-gyro_zero;
-		gyro_radians = (gyro_angle * (PI/180.0)*400.0*gyro4x_gain);
+				// Kalman filtering
+				vel1 = (enc1 - enc1old)/(193.0*0.001);	// calculate actual velocities
+				vel2 = (enc2 - enc2old)/(193.0*0.001);
+				if (fabsf(vel1) > 10.0) vel1 = vel1old;	// check for encoder roll-over should never happen
+				if (fabsf(vel2) > 10.0) vel2 = vel2old;
+				enc1old = enc1;	// save past values
+				enc2old = enc2;
+				vel1old = vel1;
+				vel2old = vel2;
 
-		// Kalman filtering
-		vel1 = (enc1 - enc1old)/(193.0*0.001);	// calculate actual velocities
-		vel2 = (enc2 - enc2old)/(193.0*0.001);
-		if (fabsf(vel1) > 10.0) vel1 = vel1old;	// check for encoder roll-over should never happen
-		if (fabsf(vel2) > 10.0) vel2 = vel2old;
-		enc1old = enc1;	// save past values
-		enc2old = enc2;
-		vel1old = vel1;
-		vel2old = vel2;
+				// Step 0: update B, u
+				B[0][0] = cosf(ROBOTps.theta)*0.001;
+				B[1][0] = sinf(ROBOTps.theta)*0.001;
+				B[2][1] = 0.001;
+				u[0][0] = 0.5*(vel1 + vel2);	// linear velocity of robot
+				u[1][0] = (gyro-gyro_zero)*(PI/180.0)*400.0*gyro4x_gain;	// angular velocity in rad/s (negative for right hand angle)
 
-		// Step 0: update B, u
-		B[0][0] = cosf(ROBOTps.theta)*0.001;
-		B[1][0] = sinf(ROBOTps.theta)*0.001;
-		B[2][1] = 0.001;
-		u[0][0] = 0.5*(vel1 + vel2);	// linear velocity of robot
-		u[1][0] = (gyro-gyro_zero)*(PI/180.0)*400.0*gyro4x_gain;	// angular velocity in rad/s (negative for right hand angle)
+				// Step 1: predict the state and estimate covariance
+				Matrix3x2_Mult(B, u, Bu);					// Bu = B*u
+				Matrix3x1_Add(x_pred, Bu, x_pred, 1.0, 1.0); // x_pred = x_pred(old) + Bu
+				Matrix3x3_Add(P_pred, Q, P_pred, 1.0, 1.0);	// P_pred = P_pred(old) + Q
+				// Step 2: if there is a new measurement, then update the state
+				if (1 == newOPTITRACKpose) {
+					newOPTITRACKpose = 0;
+					z[0][0] = OPTITRACKps.x;	// take in the LADAR measurement
+					z[1][0] = OPTITRACKps.y;
+					// fix for OptiTrack problem at 180 degrees
+					if (cosf(ROBOTps.theta) < -0.99) {
+						z[2][0] = ROBOTps.theta;
+					}
+					else {
+						z[2][0] = OPTITRACKps.theta;
+					}
+					// Step 2a: calculate the innovation/measurement residual, ytilde
+					Matrix3x1_Add(z, x_pred, ytilde, 1.0, -1.0);	// ytilde = z-x_pred
+					// Step 2b: calculate innovation covariance, S
+					Matrix3x3_Add(P_pred, R, S, 1.0, 1.0);							// S = P_pred + R
+					// Step 2c: calculate the optimal Kalman gain, K
+					Matrix3x3_Invert(S, S_inv);
+					Matrix3x3_Mult(P_pred,  S_inv, K);								// K = P_pred*(S^-1)
+					// Step 2d: update the state estimate x_pred = x_pred(old) + K*ytilde
+					Matrix3x1_Mult(K, ytilde, temp_3x1);
+					Matrix3x1_Add(x_pred, temp_3x1, x_pred, 1.0, 1.0);
+					// Step 2e: update the covariance estimate   P_pred = (I-K)*P_pred(old)
+					Matrix3x3_Add(eye3, K, temp_3x3, 1.0, -1.0);
+					Matrix3x3_Mult(temp_3x3, P_pred, P_pred);
+				}	// end of correction step
+			
+				// set ROBOTps to the updated and corrected Kalman values.
+				ROBOTps.x = x_pred[0][0];
+				ROBOTps.y = x_pred[1][0];
+				ROBOTps.theta = x_pred[2][0];
 
-		// Step 1: predict the state and estimate covariance
-		Matrix3x2_Mult(B, u, Bu);					// Bu = B*u
-		Matrix3x1_Add(x_pred, Bu, x_pred, 1.0, 1.0); // x_pred = x_pred(old) + Bu
-		Matrix3x3_Add(P_pred, Q, P_pred, 1.0, 1.0);	// P_pred = P_pred(old) + Q
-		// Step 2: if there is a new measurement, then update the state
-		if (1 == newOPTITRACKpose) {
-			newOPTITRACKpose = 0;
-			z[0][0] = OPTITRACKps.x;	// take in the LADAR measurement
-			z[1][0] = OPTITRACKps.y;
-			// fix for OptiTrack problem at 180 degrees
-			if (cosf(ROBOTps.theta) < -0.99) {
-				z[2][0] = ROBOTps.theta;
-			}
-			else {
-				z[2][0] = OPTITRACKps.theta;
-			}
-			// Step 2a: calculate the innovation/measurement residual, ytilde
-			Matrix3x1_Add(z, x_pred, ytilde, 1.0, -1.0);	// ytilde = z-x_pred
-			// Step 2b: calculate innovation covariance, S
-			Matrix3x3_Add(P_pred, R, S, 1.0, 1.0);							// S = P_pred + R
-			// Step 2c: calculate the optimal Kalman gain, K
-			Matrix3x3_Invert(S, S_inv);
-			Matrix3x3_Mult(P_pred,  S_inv, K);								// K = P_pred*(S^-1)
-			// Step 2d: update the state estimate x_pred = x_pred(old) + K*ytilde
-			Matrix3x1_Mult(K, ytilde, temp_3x1);
-			Matrix3x1_Add(x_pred, temp_3x1, x_pred, 1.0, 1.0);
-			// Step 2e: update the covariance estimate   P_pred = (I-K)*P_pred(old)
-			Matrix3x3_Add(eye3, K, temp_3x3, 1.0, -1.0);
-			Matrix3x3_Mult(temp_3x3, P_pred, P_pred);
-		}	// end of correction step
-	
-		// set ROBOTps to the updated and corrected Kalman values.
-		ROBOTps.x = x_pred[0][0];
-		ROBOTps.y = x_pred[1][0];
-		ROBOTps.theta = x_pred[2][0];
-
-		// calculate new path if target is reached
-		if ((flag_new_path_calculating == 0) && (current_waypoint == -1)) {
-			flag_new_path = 1;
-			current_target++;
-		}
-
-//		// obstacle detection
-//		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
-//			old_map = grid[i].map;
-//			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
-//				grid[i].map = 1;
-//			}
-//			new_map = grid[i].map;
-//			// calculate new path if new obstacle is detected
-//			if ((flag_new_path_calculating == 0) && (new_map != old_map)) {
-//				flag_new_path = 1;
-//			}
-//		}
-
-		// obstacle detection
-		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
-			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
-				grid[i].recognized_cnt++;
-			}
-
-			// calculate new path if new obstacle is detected
-			if ((flag_new_path_calculating == 0) && (grid[i].recognized_cnt == REC_CNT_THRESHOLD)) {
-				flag_new_path = 1;
-				grid[i].map = 1;
-				grid[i].recognized_cnt++;
-			}
-		}
-
-		// plan new robot path
-		if(flag_new_path && (flag_new_path_calculating == 0)) {
-			flag_new_path_calculating = 1;
-			flag_new_path = 0;
-			SEM_post (&SEM_a_star);
-		}
-
-		// stop robot movement if A* is running or if robot has reached finishing point
-		if ((flag_new_path_calculating) || (current_target > 8)) {
-			vref = 0;
-			turn = 0;
-		}
-		else {
-			if (current_waypoint == -1) {
-				flag_bounds_error = 1;
-			}
-			// uses xy code to step through an array of positions
-			if (!flag_bounds_error && xy_control(&vref, &turn, 2.0, ROBOTps.x, ROBOTps.y, waypoints[current_waypoint].x, waypoints[current_waypoint].y, ROBOTps.theta, 0.25, 0.75)) {
-				current_waypoint--; // "remove" waypoint from stack
-			}
-		}
-		
-		if ((newLADARdata == 1)) {
-			newLADARdata = 0;
-			for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
-				grid[i].hits = 0;
-			}
-			for (i=0;i<228;i++) {
-
-				LADARdistance[i] = newLADARdistance[i];
-				LADARangle[i] = newLADARangle[i];
-				LADARdataX[i] = newLADARdataX[i];
-				LADARdataY[i] = newLADARdataY[i];
-
-				x_grid_obst = floorf(LADARdataX[i]/2.0) + 4;
-				y_grid_obst = floorf(LADARdataY[i]/2.0) + 4;
-
-				obst_grid = x_grid_obst + (y_grid_obst * X_GRID_SIZE);
-
-				if (obst_grid < (X_GRID_SIZE * Y_GRID_SIZE) && (fabsf(turn) < 0.5)) {
-					grid[obst_grid].hits++;
+				// calculate new path if target is reached
+				if ((flag_new_path_calculating == 0) && (current_waypoint == -1)) {
+					flag_new_path = 1;
+					current_target++;
 				}
+
+		//		// obstacle detection
+		//		for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
+		//			old_map = grid[i].map;
+		//			if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
+		//				grid[i].map = 1;
+		//			}
+		//			new_map = grid[i].map;
+		//			// calculate new path if new obstacle is detected
+		//			if ((flag_new_path_calculating == 0) && (new_map != old_map)) {
+		//				flag_new_path = 1;
+		//			}
+		//		}
+
+				// obstacle detection
+				for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
+					if ((ROBOTps.y > 0) && (grid[i].hits > HITS_THRESHOLD)) {
+						grid[i].recognized_cnt++;
+					}
+
+					// calculate new path if new obstacle is detected
+					if ((flag_new_path_calculating == 0) && (grid[i].recognized_cnt == REC_CNT_THRESHOLD)) {
+						flag_new_path = 1;
+						grid[i].map = 1;
+						grid[i].recognized_cnt++;
+					}
+				}
+
+				// plan new robot path
+				if(flag_new_path && (flag_new_path_calculating == 0)) {
+					flag_new_path_calculating = 1;
+					flag_new_path = 0;
+					SEM_post (&SEM_a_star);
+				}
+
+				// stop robot movement if A* is running or if robot has reached finishing point
+				if ((flag_new_path_calculating) || (current_target > 8)) {
+					vref = 0;
+					turn = 0;
+				}
+				else {
+					if (current_waypoint == -1) {
+						flag_bounds_error = 1;
+					}
+					// uses xy code to step through an array of positions
+					if (!flag_bounds_error && xy_control(&vref, &turn, 2.0, ROBOTps.x, ROBOTps.y, waypoints[current_waypoint].x, waypoints[current_waypoint].y, ROBOTps.theta, 0.25, 0.75)) {
+						current_waypoint--; // "remove" waypoint from stack
+					}
+				}
+				
+				if ((newLADARdata == 1)) {
+					newLADARdata = 0;
+					for (i = 0; i < (X_GRID_SIZE * Y_GRID_SIZE); i++) {
+						grid[i].hits = 0;
+					}
+					for (i=0;i<228;i++) {
+
+						LADARdistance[i] = newLADARdistance[i];
+						LADARangle[i] = newLADARangle[i];
+						LADARdataX[i] = newLADARdataX[i];
+						LADARdataY[i] = newLADARdataY[i];
+
+						x_grid_obst = floorf(LADARdataX[i]/2.0) + 4;
+						y_grid_obst = floorf(LADARdataY[i]/2.0) + 4;
+
+						obst_grid = x_grid_obst + (y_grid_obst * X_GRID_SIZE);
+
+						if (obst_grid < (X_GRID_SIZE * Y_GRID_SIZE) && (fabsf(turn) < 0.5)) {
+							grid[obst_grid].hits++;
+						}
+					}
+				}
+				break;
+			case BALL_NAV:
+				// calculate blue error
+				blue_error = blue_follow_ref - blue_x;
+				red_error = red_follow_ref - red_x;
+
+
+				// calculate blue golf ball distance
+				if ((-0.0098*blue_y + 0.37) != 0) {
+					blue_dist = 1/(-0.0098*blue_y + 0.37);
+				}
+				if ((-0.0098*red_y + 0.37) != 0) {
+					red_dist = 1/(-0.0098*red_y + 0.37);
+				}
+			    vref = 1.0;
+			    if (blue_num_obj >= 1 && red_num_obj >= 1){
+			    	if (blue_dist >= red_dist){
+			    		turn = Kp_ball * blue_error;
+			    	}
+			    	else{
+			    		turn = Kp_ball * red_error;
+			    	}
+			    }
+			    else if (blue_num_obj >= 1){
+			    	turn = Kp_ball * blue_error;
+			    }
+			    else if (red_num_obj >= 1){
+			    	turn = Kp_ball * red_error;
+			    }
+			    else
+			    	turn = 0;
+
+			    //add a second on to make sure we actually get the ball inside
+			    timestart--;
+			    if (timestart == 0)
+			    {
+			    	nav_state = PATH_NAV;
+			    }
 			}
-		}
-
-
-		// calculate blue error
-		blue_error = follow_ref - blue_x;
-		red_error = follow_ref - red_x;
-
-
-		// calculate blue golf ball distance
-		if ((-0.0098*blue_y + 0.37) != 0) {
-			blue_dist = 1/(-0.0098*blue_y + 0.37);
-		}
-		if ((-0.0098*red_y + 0.37) != 0) {
-			red_dist = 1/(-0.0098*red_y + 0.37);
-		}
-	    vref = 1.0;
-	    if (blue_num_obj >= 1 && red_num_obj >= 1){
-	    	if (blue_dist >= red_dist){
-	    		turn = Kp_ball * blue_error;
-	    	}
-	    	else{
-	    		turn = Kp_ball * red_error;
-	    	}
-	    }
-	    else if (blue_num_obj >= 1){
-	    	turn = Kp_ball * blue_error;
-	    }
-	    else if (red_num_obj >= 1){
-	    	turn = Kp_ball * red_error;
-	    }
-
+			break;
+		case BALL_DUMP:
 
 
 		if ((timecount%200)==0) {
