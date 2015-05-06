@@ -133,6 +133,16 @@ sharedmemstruct *ptrshrdmem;
 extern EDMA3_CCRL_Regs *EDMA3_1_Regs;
 extern float switchstate;
 
+extern int new_blue_x;
+extern int new_blue_y;
+extern int new_blue_num_pix;
+extern int new_blue_num_obj;
+extern int new_red_x;
+extern int new_red_y;
+extern int new_red_num_pix;
+extern int new_red_num_obj;
+int toggle = 1;
+
 int Check_Equivalency(int A, int B);
 int Set_Equivalency (int A, int B);
 int Fix_Equivalency(int num_equivalencies_used);
@@ -235,22 +245,6 @@ void init_ColorVision(void) {
 	
 	ptrshrdmem = (sharedmemstruct *)SHARED_MEM;	
 
-	// set specs for a bright red
-	specs_h = 254;
-	specs_hrad = 8;
-	if((specs_h-specs_hrad)<0) // wrap 0->360
-	{
-		specs_h2=specs_h+256;
-	}
-	else // wrap 360->0
-	{
-		specs_h2=specs_h-256;
-	}
-	specs_s = 240;
-	specs_srad = 16;
-	specs_v = 183;
-	specs_vrad = 73;
-
 
 	while (CHKBIT(VPIF->INTSTAT,INT_FRAME_CH1) == 0) {}
 	SETBIT(VPIF->INTSTATCLR, INT_FRAME_CH1);
@@ -284,6 +278,44 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 	
 	int i;	
 
+	if (toggle){
+		// set specs for a orange ball
+		// specs_h = 5;
+		// specs_hrad = 221;
+		specs_h = 240;
+		specs_hrad = 19;
+		if((specs_h-specs_hrad)<0) // wrap 0->360
+		{
+			specs_h2=specs_h+256;
+		}
+		else // wrap 360->0
+		{
+			specs_h2=specs_h-256;
+		}
+		specs_s = 210;
+		specs_srad = 45;
+		specs_v = 224;
+		specs_vrad = 31;
+	}
+	else{
+		// set specs for a blue ball
+		specs_h = 168;
+		specs_hrad = 13;
+		if((specs_h-specs_hrad)<0) // wrap 0->360
+		{
+			specs_h2=specs_h+256;
+		}
+		else // wrap 360->0
+		{
+			specs_h2=specs_h-256;
+		}
+		specs_s = 173;
+		specs_srad = 82;
+		specs_v = 194;
+		specs_vrad = 61;
+	}
+
+
 	if (ptrImage != NULL) {
 		
 		// Initialize all arrays for equivalency
@@ -300,7 +332,7 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		
         // First Pass thru image.  Convert RGB to HSV.  This code is taking into account that the robot's camera only returns
         // a value between 16 and 240 for pixel intensity.  It also adds a gain of 2 to the blue intensity.  
-		for (r=0;r<IMAGE_ROWS;r++) {
+		for (r=0;r<IMAGE_ROWS-60;r++) {
 			for(c=0;c<IMAGE_COLUMNS;c++) {
 				
 				red =  ((ptrImage[r*IMAGE_COLUMNS+c].red - 16)*255)/224;
@@ -493,7 +525,7 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 				//new_C20				= final_object_stats[largest_object].C20_sum;
 				//new_C02				= final_object_stats[largest_object].C02_sum;
 				new_coordata = 1;
-			} else {
+			} else {	
 				noimagefound = 1;
 				new_num_found_objects = num_unique_objects;
 				object_x = 0.0;
@@ -503,6 +535,21 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 				//new_C20 = 0.0;
 				//new_C02 = 0.0;
 				new_coordata = 1;
+			}
+			//sending data to robot control
+			if (toggle) {
+				new_red_x = object_x;
+				new_red_y = object_y;
+				new_red_num_pix = numpels;
+				new_red_num_obj=new_num_found_objects;
+				toggle = 0;
+			}
+			else {
+				new_blue_x = object_x;
+				new_blue_y = object_y;
+				new_blue_num_pix = numpels;
+				new_blue_num_obj=new_num_found_objects;
+				toggle = 1;
 			}
 		}
 
