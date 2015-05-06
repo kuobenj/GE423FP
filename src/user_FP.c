@@ -182,6 +182,14 @@ float red_dist = 0.0;
 
 int timestart = 1000;
 
+//vars and declarations for ball collection mechanism
+#define BLUE_OPEN 15
+#define BLUE_CLOSE 0
+#define ORANGE_OPEN 0
+#define ORANGE_CLOSE 15
+float orange_door = ORANGE_CLOSE;
+float blue_door = BLUE_CLOSE;
+
 extern int new_coordata;
 
 // Path Planning Variables
@@ -288,8 +296,8 @@ float y_world_target = 0;
 /* Begin State Machine State Declarations */
 #define PATH_NAV 0
 #define BALL_NAV 1
-#define BALL_DUMP 2
-
+#define BALL_DUMP_BLUE 2
+#define BALL_DUMP_ORANGE 3
 char nav_state = PATH_NAV;
 /* End State Machine State Declarations */
 
@@ -751,6 +759,9 @@ void RobotControl(void) {
 	else {
 		switch(nav_state){
 			case PATH_NAV:
+				blue_door = BLUE_CLOSE;
+				orange_door = ORANGE_CLOSE;
+
 				gyro_angle = gyro_angle - ((gyro-gyro_zero) + old_gyro)*.0005 + gyro_drift; 
 				old_gyro = gyro-gyro_zero;
 				gyro_radians = (gyro_angle * (PI/180.0)*400.0*gyro4x_gain);
@@ -859,6 +870,18 @@ void RobotControl(void) {
 					}
 					// uses xy code to step through an array of positions
 					if (!flag_bounds_error && xy_control(&vref, &turn, 2.0, ROBOTps.x, ROBOTps.y, waypoints[current_waypoint].x, waypoints[current_waypoint].y, ROBOTps.theta, 0.25, 0.75)) {
+						//this initiates the back up for the balls
+						if (fabsf(waypoints[current_waypoint].y  - target_points[6].y) <= 0.25)
+						{
+							if (fabsf(waypoints[current_waypoint].x  - target_points[6].x) <= 0.25)
+							{
+								nav_state = BALL_DUMP_BLUE;
+							}
+							if (fabsf(waypoints[current_waypoint].x  - target_points[7].x) <= 0.25)
+							{
+								nav_state = BALL_DUMP_ORANGE;
+							}
+						}
 						current_waypoint--; // "remove" waypoint from stack
 					}
 				}
@@ -917,15 +940,34 @@ void RobotControl(void) {
 			    else
 			    	turn = 0;
 
+			    //Temporary way to integrate plotting the ball location
+			    blue_ball_array[0] = blue_dist*cosf(ROBOTps.theta)+ROBOTps.x;
+			    blue_ball_array[0] = blue_dist*sinf(ROBOTps.theta)+ROBOTps.y;
+
 			    //add a second on to make sure we actually get the ball inside
 			    timestart--;
 			    if (timestart == 0)
 			    {
 			    	nav_state = PATH_NAV;
 			    }
-			}
-			break;
-		case BALL_DUMP:
+				break;
+			case BALL_DUMP_BLUE:
+				vref = -1.0;
+				//set blue servo open
+				blue_door = BLUE_OPEN;
+				timestart--;
+
+				if (timestart == 0)
+				    	nav_state = PATH_NAV;
+			case BALL_DUMP_ORANGE:
+				vref = -1.0;
+				//set orange servo open
+				orange_door = ORANGE_OPEN;
+				timestart--;
+
+				if (timestart == 0)
+				    	nav_state = PATH_NAV;
+		}
 
 
 		if ((timecount%200)==0) {
@@ -934,7 +976,7 @@ void RobotControl(void) {
 			LCDPrintfLine(2,"A*%d WX%.0f WY%.0f CT%d", flag_new_path_calculating, waypoints[current_waypoint].x, waypoints[current_waypoint].y, current_target);
 		}
 
-		SetRobotOutputs(vref,turn,0,0,0,0,0,0,0,0);
+		SetRobotOutputs(vref,turn,blue_door,orange_door,0,0,0,0,0,0);
 
 		timecount++;
 	}
