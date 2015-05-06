@@ -106,6 +106,7 @@ user_FP.obj: C:/ngraves2/repository/FP/include/LCDprintf.h
 user_FP.obj: C:/ngraves2/repository/FP/include/ladar.h
 user_FP.obj: C:/ngraves2/repository/FP/include/xy.h
 user_FP.obj: C:/ngraves2/repository/FP/include/MatrixMath.h
+user_FP.obj: C:/ngraves2/repository/FP/src/user_FP.h
 
 C:/ngraves2/repository/FP/src/user_FP.c: 
 C:/CCStudio_v6.0/bios_5_42_01_09/packages/ti/bios/include/std.h: 
@@ -213,3 +214,4 @@ C:/ngraves2/repository/FP/include/LCDprintf.h:
 C:/ngraves2/repository/FP/include/ladar.h: 
 C:/ngraves2/repository/FP/include/xy.h: 
 C:/ngraves2/repository/FP/include/MatrixMath.h: 
+C:/ngraves2/repository/FP/src/user_FP.h: 

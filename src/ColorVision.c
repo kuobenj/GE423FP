@@ -282,8 +282,8 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		// set specs for a orange ball
 		// specs_h = 5;
 		// specs_hrad = 221;
-		specs_h = 240;
-		specs_hrad = 19;
+		specs_h = 232;
+		specs_hrad = 32;
 		if((specs_h-specs_hrad)<0) // wrap 0->360
 		{
 			specs_h2=specs_h+256;
@@ -292,15 +292,15 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		{
 			specs_h2=specs_h-256;
 		}
-		specs_s = 210;
-		specs_srad = 45;
-		specs_v = 224;
-		specs_vrad = 31;
+		specs_s = 215;
+		specs_srad = 40;
+		specs_v = 222;
+		specs_vrad = 33;
 	}
 	else{
 		// set specs for a blue ball
-		specs_h = 168;
-		specs_hrad = 13;
+		specs_h = 162;
+		specs_hrad = 18;
 		if((specs_h-specs_hrad)<0) // wrap 0->360
 		{
 			specs_h2=specs_h+256;
@@ -309,10 +309,10 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		{
 			specs_h2=specs_h-256;
 		}
-		specs_s = 173;
-		specs_srad = 82;
-		specs_v = 194;
-		specs_vrad = 61;
+		specs_s = 171;
+		specs_srad = 84;
+		specs_v = 193;
+		specs_vrad = 62;
 	}
 
 
@@ -332,7 +332,7 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		
         // First Pass thru image.  Convert RGB to HSV.  This code is taking into account that the robot's camera only returns
         // a value between 16 and 240 for pixel intensity.  It also adds a gain of 2 to the blue intensity.  
-		for (r=0;r<IMAGE_ROWS-60;r++) {
+		for (r=0;r<IMAGE_ROWS-75;r++) {
 			for(c=0;c<IMAGE_COLUMNS;c++) {
 				
 				red =  ((ptrImage[r*IMAGE_COLUMNS+c].red - 16)*255)/224;
