@@ -174,21 +174,21 @@ int new_red_num_obj = 0;
 float Kp_ball = 0.05;
 float blue_error = 0;
 float red_error = 0;
-float blue_follow_ref = -30.0;
-float red_follow_ref = 30.0;
+float blue_follow_ref = 30.0;
+float red_follow_ref = -30.0;
 
 float blue_dist = 0.0;
 float red_dist = 0.0;
 
-int timestart = 1000;
+int timestart = 1500;
 
 //vars and declarations for ball collection mechanism
-#define BLUE_OPEN 15
-#define BLUE_CLOSE 0
-#define ORANGE_OPEN 0
-#define ORANGE_CLOSE 15
-float orange_door = ORANGE_CLOSE;
-float blue_door = BLUE_CLOSE;
+#define BLUE_OPEN 6
+#define BLUE_CLOSE 10.5
+#define ORANGE_OPEN 8
+#define ORANGE_CLOSE 4
+float orange_door = ORANGE_OPEN;
+float blue_door = BLUE_OPEN;
 
 extern int new_coordata;
 
@@ -712,9 +712,9 @@ void RobotControl(void) {
 		red_num_obj = new_red_num_obj;
 
 		new_coordata = 0;
-		timestart = 1000;
-		if ((blue_num_pix > 5) || (red_num_pix > 5))
-			nav_state = BALL_NAV;	
+		//timestart = 1500;
+		// if ((blue_num_pix > 5) || (red_num_pix > 5))
+		// 	nav_state = BALL_NAV;	
 	}
 
 	if (GET_OPTITRACKDATA_FROM_LINUX) {
@@ -754,7 +754,10 @@ void RobotControl(void) {
 
 		newOPTITRACKpose = 0;
 
-		SetRobotOutputs(0,0,0,0,0,0,0,0,0,0);
+		// blue_door = BLUE_CLOSE;
+		// orange_door = ORANGE_CLOSE;
+
+		SetRobotOutputs(0,0,blue_door,orange_door,0,0,0,0,0,0);
 	}
 	else {
 		switch(nav_state){
@@ -873,12 +876,14 @@ void RobotControl(void) {
 						//this initiates the back up for the balls
 						if (fabsf(waypoints[current_waypoint].y  - target_points[6].y) <= 0.25)
 						{
-							if (fabsf(waypoints[current_waypoint].x  - target_points[6].x) <= 0.25)
+							if (waypoints[current_waypoint].x  == target_points[6].x)
 							{
+								timestart = 1500;
 								nav_state = BALL_DUMP_BLUE;
 							}
-							if (fabsf(waypoints[current_waypoint].x  - target_points[7].x) <= 0.25)
+							if (waypoints[current_waypoint].x  == target_points[7].x)
 							{
+								timestart = 1500;
 								nav_state = BALL_DUMP_ORANGE;
 							}
 						}
@@ -913,7 +918,8 @@ void RobotControl(void) {
 				// calculate blue error
 				blue_error = blue_follow_ref - blue_x;
 				red_error = red_follow_ref - red_x;
-
+				blue_door = BLUE_OPEN;
+				orange_door = ORANGE_OPEN;
 
 				// calculate blue golf ball distance
 				if ((-0.0098*blue_y + 0.37) != 0) {
@@ -959,6 +965,7 @@ void RobotControl(void) {
 
 				if (timestart == 0)
 				    	nav_state = PATH_NAV;
+				 break;
 			case BALL_DUMP_ORANGE:
 				vref = -1.0;
 				//set orange servo open
@@ -967,13 +974,15 @@ void RobotControl(void) {
 
 				if (timestart == 0)
 				    	nav_state = PATH_NAV;
+				break;
 		}
 
 
 		if ((timecount%200)==0) {
 
-			LCDPrintfLine(1,"X%.0f Y%.0f T%.0f", x_world_robot, y_world_robot, theta_world_robot);
-			LCDPrintfLine(2,"A*%d WX%.0f WY%.0f CT%d", flag_new_path_calculating, waypoints[current_waypoint].x, waypoints[current_waypoint].y, current_target);
+			// LCDPrintfLine(1,"X%.0f Y%.0f T%.0f", x_world_robot, y_world_robot, theta_world_robot);
+			// LCDPrintfLine(2,"A*%d WX%.0f WY%.0f CT%d", flag_new_path_calculating, waypoints[current_waypoint].x, waypoints[current_waypoint].y, current_target);
+			// LCDPrintfLine(1,"timestart %d", timestart);
 		}
 
 		SetRobotOutputs(vref,turn,blue_door,orange_door,0,0,0,0,0,0);
