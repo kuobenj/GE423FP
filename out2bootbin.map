@@ -21,19 +21,19 @@ OUTPUT TRANSLATION MAP
 --------------------------------------------------------------------------------
    OUTPUT FILES: C:/ngraves2/repository/FP/FPProject\..\FP.bin [b0..b7]
 
-   CONTENTS: 00000000..0001f917   BOOT TABLE
-                         .hwi_vec : btad=00000000  dest=1182c000 size=00000200
-                            .bios : btad=0000020c  dest=1181d860 size=00004500
-                           .pinit : btad=00004714  dest=11826834 size=0000000c
-                            .text : btad=00004728  dest=11800000 size=000167c0
-                           .cinit : btad=0001aef0  dest=11821d60 size=00002ac4
-                          .switch : btad=0001d9bc  dest=1182cc04 size=0000008c
-                         .gblinit : btad=0001da50  dest=1182cc90 size=00000070
-                         .sysinit : btad=0001dac8  dest=1182b5e0 size=00000500
-                         .trcdata : btad=0001dfd0  dest=1182b5d4 size=0000000c
-                       .rtdx_text : btad=0001dfe4  dest=11826840 size=00000fc0
-                           .const : btad=0001efac  dest=1182af78 size=0000064c
-                            .args : btad=0001f600  dest=1182baf0 size=00000004
-                           .trace : btad=0001f60c  dest=1182c200 size=00000200
-                             .log : btad=0001f814  dest=1182cd3c size=00000030
-                             .sts : btad=0001f84c  dest=1182cb44 size=000000c0
+   CONTENTS: 00000000..0001f997   BOOT TABLE
+                         .hwi_vec : btad=00000000  dest=1182c400 size=00000200
+                            .bios : btad=0000020c  dest=1181d8e0 size=00004500
+                           .pinit : btad=00004714  dest=118268b4 size=0000000c
+                            .text : btad=00004728  dest=11800000 size=00016840
+                           .cinit : btad=0001af70  dest=11821de0 size=00002ac4
+                          .switch : btad=0001da3c  dest=1182cc84 size=0000008c
+                         .gblinit : btad=0001dad0  dest=1182cd10 size=00000070
+                         .sysinit : btad=0001db48  dest=1182b5e0 size=00000500
+                         .trcdata : btad=0001e050  dest=1182b5d4 size=0000000c
+                       .rtdx_text : btad=0001e064  dest=118268c0 size=00000fc0
+                           .const : btad=0001f02c  dest=1182af78 size=0000064c
+                            .args : btad=0001f680  dest=1182baf0 size=00000004
+                           .trace : btad=0001f68c  dest=11828480 size=00000200
+                             .log : btad=0001f894  dest=1182cdbc size=00000030
+                             .sts : btad=0001f8cc  dest=1182cbc4 size=000000c0

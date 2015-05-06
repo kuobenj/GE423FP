@@ -171,11 +171,13 @@ int new_red_y = 0;
 int new_red_num_pix = 0;
 int new_red_num_obj = 0;
 
+#define NUM_PIX_THRES 20
+
 float Kp_ball = 0.05;
 float blue_error = 0;
 float red_error = 0;
-float blue_follow_ref = 30.0;
-float red_follow_ref = -30.0;
+float blue_follow_ref = -40.0;
+float red_follow_ref = 40.0;
 
 float blue_dist = 0.0;
 float red_dist = 0.0;
@@ -712,9 +714,11 @@ void RobotControl(void) {
 		red_num_obj = new_red_num_obj;
 
 		new_coordata = 0;
-		//timestart = 1500;
-		// if ((blue_num_pix > 5) || (red_num_pix > 5))
-		// 	nav_state = BALL_NAV;	
+		if ((blue_num_pix > NUM_PIX_THRES) || (red_num_pix > NUM_PIX_THRES))
+		{
+			timestart = 1000;
+		 	nav_state = BALL_NAV;	
+		}
 	}
 
 	if (GET_OPTITRACKDATA_FROM_LINUX) {
@@ -753,9 +757,6 @@ void RobotControl(void) {
 		}
 
 		newOPTITRACKpose = 0;
-
-		// blue_door = BLUE_CLOSE;
-		// orange_door = ORANGE_CLOSE;
 
 		SetRobotOutputs(0,0,blue_door,orange_door,0,0,0,0,0,0);
 	}
@@ -918,9 +919,7 @@ void RobotControl(void) {
 				// calculate blue error
 				blue_error = blue_follow_ref - blue_x;
 				red_error = red_follow_ref - red_x;
-				blue_door = BLUE_OPEN;
-				orange_door = ORANGE_OPEN;
-
+				
 				// calculate blue golf ball distance
 				if ((-0.0098*blue_y + 0.37) != 0) {
 					blue_dist = 1/(-0.0098*blue_y + 0.37);
@@ -932,16 +931,24 @@ void RobotControl(void) {
 			    if (blue_num_obj >= 1 && red_num_obj >= 1){
 			    	if (blue_dist >= red_dist){
 			    		turn = Kp_ball * blue_error;
+			    		blue_door = BLUE_OPEN;
+			    		orange_door = ORANGE_CLOSE;
 			    	}
 			    	else{
 			    		turn = Kp_ball * red_error;
+			    		orange_door = ORANGE_OPEN;
+			    		blue_door = BLUE_CLOSE;
 			    	}
 			    }
 			    else if (blue_num_obj >= 1){
 			    	turn = Kp_ball * blue_error;
+			    	blue_door = BLUE_OPEN;
+			    	orange_door = ORANGE_CLOSE;
 			    }
 			    else if (red_num_obj >= 1){
 			    	turn = Kp_ball * red_error;
+			    	orange_door = ORANGE_OPEN;
+			    	blue_door = BLUE_CLOSE;
 			    }
 			    else
 			    	turn = 0;
@@ -961,6 +968,7 @@ void RobotControl(void) {
 				vref = -1.0;
 				//set blue servo open
 				blue_door = BLUE_OPEN;
+				orange_door = ORANGE_CLOSE;
 				timestart--;
 
 				if (timestart == 0)
@@ -970,6 +978,7 @@ void RobotControl(void) {
 				vref = -1.0;
 				//set orange servo open
 				orange_door = ORANGE_OPEN;
+				blue_door = BLUE_CLOSE;
 				timestart--;
 
 				if (timestart == 0)
