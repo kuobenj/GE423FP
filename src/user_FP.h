@@ -130,8 +130,8 @@ int new_red_y = 0;
 int new_red_num_pix = 0;
 int new_red_num_obj = 0;
 
-#define NUM_PIX_THRES_BLUE 16
-#define NUM_PIX_THRES_ORANGE 16
+#define NUM_PIX_THRES_BLUE 25
+#define NUM_PIX_THRES_ORANGE 25
 //flags to make sure we track the same ball
 #define NO_BALL 0
 #define BLUE_FLAG 1
@@ -156,15 +156,30 @@ int time_ball_up = 0;
 #define BLUE_CLOSE 10.75
 #define ORANGE_OPEN 8
 #define ORANGE_CLOSE 4
+#define OPEN_DELAY 600
 float orange_door = ORANGE_OPEN;
 float blue_door = BLUE_OPEN;
+float K_ball_turn = 0.05;
+
+//basic avoidance vars
+float avg_right_LADAR;
+float avg_left_LADAR;
+float turn_thresh = 400.0;
+float turn_right;
+float turn_left;
+int n = 1;
 
 int blue_detected = 0;
 int orange_detected = 0;
-float blue_ball_array[6] = {-7.0, 0.0, -7.0, 0.3, -7.0, 0.6};
-float orange_ball_array[6] = {-7.0, 0.9, -7.0, 1.2, -7.0, 1.5};
+float blue_ball_array[6] = {-11.0, 0.0, -11.0, 0.3, -11.0, 0.6};
+float orange_ball_array[6] = {-11.0, 0.9, -11.0, 1.2, -11.0, 1.5};
+int framecount = 0;
+int dec_ball=0;
 
 extern int new_coordata;
+
+int ball_debounce = 0;
+int ball_collected = 0;
 
 // Path Planning Variables
 // Format Coordinates as "variable"_"coord frame"_"object"
@@ -178,7 +193,7 @@ extern int new_coordata;
 #define G_MOVE_COST 1
 #define G_TURN_COST 1
 #define HITS_THRESHOLD 40
-#define REC_CNT_THRESHOLD 300
+#define REC_CNT_THRESHOLD 3
 
 // Structure Declerations
 typedef struct tile {
@@ -204,12 +219,10 @@ typedef struct map_point {
 extern SEM_Obj SEM_a_star;
 
 // Global Variable Declarations
-// old way Dan Block found as a mistake
-//tile grid[X_GRID_SIZE * Y_GRID_SIZE - 1];
 tile grid[X_GRID_SIZE * Y_GRID_SIZE];
-map_point target_points[9];
+map_point target_points[8];
 map_point waypoints[50];
-int current_target = 0;	// skip first target point
+int current_target = -1;
 int current_waypoint = -1;
 int flag_new_path_calculating = 0;
 int flag_new_path = 0;
@@ -256,7 +269,7 @@ int adjacent_direction = 0;
 float old_f = 0;
 float new_g = 0;
 float new_f = 0;
-int already_passed_six = 0;
+int already_passed_five = 0;
 
 // "Shared" A* Variables
 long a_star_cnt = 0;
@@ -275,3 +288,13 @@ float y_world_target = 0;
 char nav_state = PATH_NAV;
 /* End State Machine State Declarations */
 
+/* Begin Audio Feedback Declarations */
+#define AF_SPEECH 1
+#define AF_SOUND_FILE 2
+void play_speech(char * words);
+void play_sound_file(char * filename);
+
+char * catchphrases[50] = {
+	"You say tomayto, I say tomato. You say potato, I also say potato."
+};
+/* End Audio Feedback Declarations */

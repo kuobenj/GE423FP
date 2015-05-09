@@ -142,6 +142,8 @@ extern int new_red_y;
 extern int new_red_num_pix;
 extern int new_red_num_obj;
 int toggle = 1;
+int framelast = 0;
+extern int framecount;
 
 int Check_Equivalency(int A, int B);
 int Set_Equivalency (int A, int B);
@@ -299,7 +301,7 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 	}
 	else{
 		// set specs for a blue ball
-		specs_h = 162;
+		specs_h = 164;
 		specs_hrad = 18;
 		if((specs_h-specs_hrad)<0) // wrap 0->360
 		{
@@ -309,10 +311,10 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 		{
 			specs_h2=specs_h-256;
 		}
-		specs_s = 171;
-		specs_srad = 84;
-		specs_v = 193;
-		specs_vrad = 62;
+		specs_s = 166;
+		specs_srad = 89;
+		specs_v = 169;
+		specs_vrad = 86;
 	}
 
 
@@ -552,9 +554,21 @@ void userProcessColorImageFunc_laser(bgr *ptrImage) {
 				toggle = 1;
 			}
 		}
+		// if (num_unique >= 1 && framelast == 1){
+  //   		framecount++;
+  // 			framelast = 1;
+  //   	}
+  //  		else if (num_unique >= 1 && framelast == 0){
+  //   		framecount = 1;
+  //   		framelast = 1;
+  //  		}
+  //   	else {
+  //   		framelast = 0;
+  //   		framecount = 0;
+  //  		}
 
         //create green x for largest centroid position
-        if (final_object_stats[largest_object].num_pixels_in_object > 6) {
+        if (final_object_stats[largest_object].num_pixels_in_object > 10) {
 
             ptrImage[rbar*IMAGE_COLUMNS+cbar].red = 0;
             ptrImage[rbar*IMAGE_COLUMNS+cbar].blue = 0;
@@ -731,6 +745,7 @@ int Fix_Equivalency(int num_equivalencies_used) { // Fixes equivalency to ordere
     if ( num_unique > MAX_NUM_OBJECTS )  {
         num_unique = MAX_NUM_OBJECTS;
     }
+
 	
 	// Add up totals, since many different objects now refer to same final object 
 	for (i=1; i < num_equivs; i++) {	
