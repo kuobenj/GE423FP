@@ -121,7 +121,6 @@ int xy_control(float *vref_forxy, float *turn_forxy,float turn_thres, float x_po
 		target_near = FALSE;
 	}
 
-	// vref is 1 tile/sec; but slower when close to target.  
 	*vref_forxy = dir*MIN(3*dist,FORWARD_SPEED);
 
     if (fabsf(*vref_forxy) > 0.0) {
