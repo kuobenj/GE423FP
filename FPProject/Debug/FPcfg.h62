@@ -91,6 +91,7 @@
 	.global	_ComWithLinux
 	.global	_LADARtask
 	.global	_a_star
+	.global	_audio_feedback
 
 ;; MODULE PARAMETERS
 GBL$                .set 1

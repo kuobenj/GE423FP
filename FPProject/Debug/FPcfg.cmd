@@ -81,6 +81,7 @@ _L3_CBA_RAM = L3_CBA_RAM;
 _PRD_clock = PRD_clock;
 _PRD_startMcBSP = PRD_startMcBSP;
 _PRD_addtime = PRD_addtime;
+_PRD_sound = PRD_sound;
 _RTA_fromHost = RTA_fromHost;
 _RTA_toHost = RTA_toHost;
 _HWI_RESET = HWI_RESET;
@@ -289,7 +290,7 @@ SECTIONS {
    .prd: RUN_START(PRD_A_TABBEG), RUN_END(PRD_A_TABEND) {
    } > IRAM
 }
-PRD_A_TABLEN = 2;
+PRD_A_TABLEN = 3;
 
 /* MODULE RTDX */
 _RTDX_interrupt_mask = 0x0;

@@ -20,6 +20,7 @@ extern "C" {
 
 extern far PRD_Obj PRD_startMcBSP;
 extern far PRD_Obj PRD_addtime;
+extern far PRD_Obj PRD_sound;
 extern far HST_Obj RTA_fromHost;
 extern far HST_Obj RTA_toHost;
 extern far SWI_Obj PRD_swi;

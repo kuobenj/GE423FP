@@ -111,7 +111,7 @@ type GlobalStatus {
         prop Visible :: 0
         prop Writable :: 1
     }
-    global DATE :: "Wed May 06 13:29:52 2015" { 
+    global DATE :: "Sat May 09 16:02:37 2015" { 
         prop Type :: "{21455EA3-B96A-11cf-9BFE-0000C0AC14C7}"
         prop Visible :: 0
         prop Writable :: 0
@@ -2845,7 +2845,7 @@ type PRD {
         prop Writable :: 0
         prop NoGen :: 1
     }
-    global gNumOf :: 2 { 
+    global gNumOf :: 3 { 
         prop Visible :: 0
         prop Writable :: 0
         prop NoGen :: 1
@@ -8739,7 +8739,7 @@ type STS {
         prop Writable :: 1
         prop NoGen :: 1
     }
-    global gNumEmbed :: 10 { 
+    global gNumEmbed :: 11 { 
         prop Visible :: 0
         prop Writable :: 0
         prop NoGen :: 1
@@ -10831,7 +10831,7 @@ object PRD_startMcBSP :: PRD {
     param function :: @_startMcBSP
     param arg0 :: 0
     param arg1 :: 0
-    param Order :: 3
+    param Order :: 2
     param iPri :: 0
     param filter :: 0
     param maxformat :: "%g ticks"
@@ -10851,7 +10851,7 @@ object PRD_addtime :: PRD {
     param function :: @_addtime
     param arg0 :: 0
     param arg1 :: 0
-    param Order :: 4
+    param Order :: 3
     param iPri :: 0
     param filter :: 0
     param maxformat :: "%g ticks"
@@ -11029,5 +11029,25 @@ object SEM_a_star :: SEM {
     param iDelUser :: "USER"
     param iDelMsg :: "ok"
     param iCount :: 0
+}
+
+object PRD_sound :: PRD {
+    param iComment :: "for processing sound requests"
+    param iIsUsed :: 1
+    param iId :: 0
+    param iDelUser :: "USER"
+    param iDelMsg :: "ok"
+    param period :: 100
+    param mode :: "continuous"
+    param function :: @_audio_feedback
+    param arg0 :: 0
+    param arg1 :: 0
+    param Order :: 4
+    param iPri :: 0
+    param filter :: 0
+    param maxformat :: "%g ticks"
+    param sumformat :: "%g ticks"
+    param avgformat :: "%.2f ticks"
+    param unittype :: 2
 }
 

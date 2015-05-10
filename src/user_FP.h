@@ -291,10 +291,68 @@ char nav_state = PATH_NAV;
 /* Begin Audio Feedback Declarations */
 #define AF_SPEECH 1
 #define AF_SOUND_FILE 2
+int finished_flag = 0;
+int well_I_never = 0;
 void play_speech(char * words);
 void play_sound_file(char * filename);
+void audio_feedback(void);
+int random(int range);
 
-char * catchphrases[50] = {
-	"You say tomayto, I say tomato. You say potato, I also say potato."
+unsigned char sound_send = 0; // is there a sound pending playback? 1 means yes, 2 means we sent a request to linux (and linux "delivered")
+
+char * start_phrase = "Gigabot is ready for action.";
+
+char * checkpoint_phrases[7] = 
+{
+	"Commence gibberish: urerirorurerirorurerirorurer enememeneyenemenemenemenemenem terebereefebereteriumber hubribebebebebebebenemenemenemenemenerererererererererer. Indeed.",
+	"You say tomayto, I say tomato. You say potato, I also say potato.",
+	"Oh heavens, where am I?",
+	"Who are all these people?",
+	"Once upon a time, there existed the Land of a Thousand Golf Balls. How I wish I were there.",
+	"Toto, I've a feeling we're not in Kansas anymore.",
+	"Where are those illustrious golf balls?"
 };
+
+char * found_obstacle_phrases[2] = {
+	"Oh my, there's a box here.",
+	"Goodness, who put this box here?"
+};
+
+char * found_blue_ball_phrases[7] = {
+	"Oh my, a blue ball.",
+	"Oh my, a blue ball.",
+	"Oh my, a blue ball.",
+	"Don't mind if I do.",
+	"How delightful.",
+	"Might as well grab a 'byte'. hahhahhahhahh",
+	"Who put these delicious things in my way?"
+};
+
+char * found_orange_ball_phrases[7] = {
+	"Oh my, an orange ball.",
+	"Oh my, an orange ball.",
+	"Oh my, an orange ball.",
+	"Don't mind if I do.",
+	"How delightful.",
+	"Might as well grab a 'byte'. Hahhahhahhahh.",
+	"Who put these delicious things in my way?"
+};
+
+char * ball_collected_phrases[4] = {
+	"I do say, these are magnificent.",
+	"Om nom nom nom.",
+	"Scrumptious.",
+	"I should really go on a diet."
+};
+
+char * ball_dump_sounds[4] = {
+	"burp.wav",
+	"apeshit.wav",
+	"metal_drop.wav",
+	"cash_register.wav"
+};
+
+char * finish_sound = "cheering.wav";
+
+//"You say tomayto, I say tomato. You say potato, I also say potato."
 /* End Audio Feedback Declarations */

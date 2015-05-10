@@ -78,6 +78,21 @@ bios.TSK.instance("TSK_a_star").order = 4;
 bios.TSK.instance("TSK_a_star").fxn = prog.extern("a_star");
 bios.SEM.create("SEM_a_star");
 bios.TSK.instance("TSK_a_star").stackSize = 2048;
+bios.PRD.create("PRD_sound");
+bios.PRD.instance("PRD_sound").order = 5;
+bios.PRD.instance("PRD_sound").comment = "Periodically checks if we need to play a sound.";
+bios.PRD.instance("PRD_sound").period = 1000;
+bios.PRD.instance("PRD_sound").period = 100;
+bios.PRD.instance("PRD_sound").fxn = prog.extern("audio_feedback");
+bios.PRD.instance("PRD_sound").period = 10;
+bios.PRD.instance("PRD_startMcBSP").order = 2;
+bios.PRD.instance("PRD_addtime").order = 3;
+bios.PRD.instance("PRD_sound").destroy();
+bios.PRD.create("PRD_sound");
+bios.PRD.instance("PRD_sound").order = 4;
+bios.PRD.instance("PRD_sound").period = 100;
+bios.PRD.instance("PRD_sound").comment = "for processing sound requests";
+bios.PRD.instance("PRD_sound").fxn = prog.extern("audio_feedback");
 // !GRAPHICAL_CONFIG_TOOL_SCRIPT_INSERT_POINT!
 
 prog.gen();

@@ -397,8 +397,6 @@ void RobotControl(void) {
 
 	int newOPTITRACKpose = 0;
 	int i = 0;
-	int orange_dump_flag = 0;
-	int played = 0;
 
 	if (0==(timecount%1000)) {
 		switch(whichled) {
@@ -448,14 +446,17 @@ void RobotControl(void) {
 			{
 				time_ball_down = 700;
 				nav_state = BALL_NAV;
+				
 			 	if (ball_track_flag == NO_BALL)
 			 	{
 			 		time_ball_up = 0;
 			 	 	if (blue_num_pix > red_num_pix) {
 				 		ball_track_flag = BLUE_FLAG;
+				 		play_speech(found_blue_ball_phrases[random(7)]);
 			 	 	}
 				 	else {
 				 		ball_track_flag = ORANGE_FLAG;
+				 		play_speech(found_orange_ball_phrases[random(7)]);
 				 	}
 				}
 			}
@@ -506,6 +507,8 @@ void RobotControl(void) {
 		SetRobotOutputs(0,0,blue_door,orange_door,0,0,0,0,0,0);
 	}
 	else {
+		if (timecount == 0)
+			play_speech(start_phrase);
 		gyro_angle = gyro_angle - ((gyro-gyro_zero) + old_gyro)*.0005 + gyro_drift;
 		old_gyro = gyro-gyro_zero;
 		gyro_radians = (gyro_angle * (PI/180.0)*400.0*gyro4x_gain);
@@ -604,6 +607,11 @@ void RobotControl(void) {
 				if ((flag_new_path_calculating == 0) && (grid[i].recognized_cnt == REC_CNT_THRESHOLD)) {
 					flag_new_path = 1;
 					grid[i].map = 1;
+					if (0 == well_I_never)
+					{
+						play_speech(found_obstacle_phrases[random(2)]);
+						well_I_never = 1;
+					}
 					grid[i].recognized_cnt++;
 				}
 			}
@@ -624,6 +632,9 @@ void RobotControl(void) {
 				if ((flag_new_path_calculating == 0) && (current_waypoint == -1)) {
 					flag_new_path = 1;
 					current_target++;
+
+					if (current_target <= 5)
+						play_speech(checkpoint_phrases[random(7)]);
 				}
 
 				// plan new robot path
@@ -637,6 +648,11 @@ void RobotControl(void) {
 				if ((flag_new_path_calculating) || (current_target > 8)) {
 					vref = 0;
 					turn = 0;
+					if ((current_target > 8) && (0 == finished_flag))
+					{
+						play_sound_file(finish_sound);
+						finished_flag = 1;
+					}
 				}
 				else {
 					if (current_waypoint == -1) {
@@ -651,12 +667,13 @@ void RobotControl(void) {
 							{
 								time_dump = 1500;
 								nav_state = BALL_DUMP_BLUE;
+								play_sound_file(ball_dump_sounds[random(4)]);
 							}
 							if (waypoints[current_waypoint].x  == target_points[6].x)
 							{
 								time_dump = 1500;
 								nav_state = BALL_DUMP_ORANGE;
-								orange_dump_flag = 1; // temp?
+								play_sound_file(ball_dump_sounds[random(4)]);
 							}
 						}
 						current_waypoint--; // "remove" waypoint from stack
@@ -754,6 +771,7 @@ void RobotControl(void) {
 						orange_detected++;
 					}
 					ball_collected = 1;
+					play_speech(ball_collected_phrases[random(4)]);
 				}
 				break;
 
@@ -765,28 +783,19 @@ void RobotControl(void) {
 				time_dump--;
 
 				if (time_dump == 0) {
-				    	nav_state = PATH_NAV;
+				   	nav_state = PATH_NAV;
 				}
-				 break;
+				break;
 			case BALL_DUMP_ORANGE:
 				vref = -1.0;
 				//set orange servo open
 				orange_door = ORANGE_OPEN;
 				blue_door = BLUE_CLOSE;
 				time_dump--;
-				play_sound_file("burp.wav");
-				CLR_DATAFORFILE_TO_LINUX;
 				if (time_dump == 0) {
 				    nav_state = PATH_NAV;
 				}
 				break;
-		}
-
-		if (orange_dump_flag && !played)
-		{
-			play_sound_file("burp.wav");
-			CLR_DATAFORFILE_TO_LINUX;
-			played = 1;
 		}
 
 		if ((timecount % 200) == 0) {
@@ -796,7 +805,7 @@ void RobotControl(void) {
 //			LCDPrintfLine(1,"A* Count %d", a_star_cnt);
 //			LCDPrintfLine(2,"");
 			LCDPrintfLine(1,"%.0f %.0f %.0f %.0f %.0f", waypoints[0].x, waypoints[1].x, waypoints[2].x, waypoints[3].x, waypoints[4].x);
-			LCDPrintfLine(2,"%.0f %.0f %.0f %.0f %.0f", waypoints[0].y, waypoints[1].y, waypoints[2].y, waypoints[3].y, waypoints[4].y);
+			LCDPrintfLine(2,"%d %d", sound_send, finished_flag);
 		}
 
 		SetRobotOutputs(vref,turn,blue_door,orange_door,0,0,0,0,0,0);
@@ -1157,18 +1166,54 @@ void a_star (void) {
 	}
 }
 
+char sound_info[512];
+/* gets called every 100 ms to check if we need to tell linux we want a sound or speech played */
+void audio_feedback(void)
+{
+	if (!sound_send) // nothing to send, return right away
+	{
+		return;
+	}
+	else if (1 == sound_send)
+	{
+		//while (!GET_DATAFORFILE_TO_LINUX); // wait for anything that is already going
+		if (GET_DATAFORFILE_TO_LINUX)
+		{
+			strcpy( (char *)ptrshrdmem->scratch, sound_info);
+			BCACHE_wb((void *)ptrshrdmem,sizeof(sharedmemstruct),EDMA3_CACHE_WAIT);
+			CLR_DATAFORFILE_TO_LINUX;		// Tell linux to play the sound specified in shared mem scratch
+			sound_send = 2;					// indicate that we requested the sound be played
+		}
+	}
+	else if (2 == sound_send && GET_DATAFORFILE_TO_LINUX) // we sent a request and linux is done
+	{
+		sound_send = 0;	 // sound sent and played, so clear the flag
+	}
+
+}
+
 void play_speech(char * words)
 {
-	char sound_info[512];
-	sound_info[0] = AF_SPEECH;
-	strcpy( &(sound_info[1]), words ); // copy argument to sound_info
-	strcpy( (char *)ptrshrdmem->scratch, sound_info);
+	if (sound_send == 0)
+	{
+		sound_info[0] = AF_SPEECH;
+		strcpy( &(sound_info[1]), words ); // copy argument to sound_info
+		sound_send = 1;
+	}
 }
 
 void play_sound_file(char * filename)
 {
-	char sound_info[512];
-	sound_info[0] = AF_SOUND_FILE;
-	strcpy( &(sound_info[1]), filename ); // copy argument to sound_info
-	strcpy( (char *)ptrshrdmem->scratch, sound_info);
+	if (sound_send == 0)
+	{
+		sound_info[0] = AF_SOUND_FILE;
+		strcpy( &(sound_info[1]), filename ); // copy argument to sound_info
+		sound_send = 1;
+	}
+}
+
+/* returns a "random" number. range is the highest number, minus 1 */
+int random(int range)
+{
+	return timecount % range;
 }
