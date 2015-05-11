@@ -760,14 +760,14 @@ void RobotControl(void) {
 					nav_state = PATH_NAV;
 					if (blue_door == BLUE_OPEN)
 					{
-						blue_ball_array[blue_detected*2] = ROBOTps.x;
-						blue_ball_array[blue_detected*2+1] = ROBOTps.y;
+						blue_ball_array[blue_detected*2] = ROBOTps.x + COLLECTOR_OFFSET*cosf(ROBOTps.theta);
+						blue_ball_array[blue_detected*2+1] = ROBOTps.y + COLLECTOR_OFFSET*sinf(ROBOTps.theta);
 						blue_detected++;
 					}
 					else if (orange_door == ORANGE_OPEN)
 					{
-						orange_ball_array[orange_detected*2] = ROBOTps.x;
-						orange_ball_array[orange_detected*2+1] = ROBOTps.y;
+						orange_ball_array[orange_detected*2] = ROBOTps.x + COLLECTOR_OFFSET*cosf(ROBOTps.theta);
+						orange_ball_array[orange_detected*2+1] = ROBOTps.y + COLLECTOR_OFFSET*sinf(ROBOTps.theta);
 						orange_detected++;
 					}
 					ball_collected = 1;

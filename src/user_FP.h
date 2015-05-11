@@ -111,7 +111,6 @@ volatile int temp_trackableID = -1;
 int trackableID = -1;
 int errorcheck = 1;
 
-
 //data for the ball following
 int blue_x = 0;
 int blue_y = 0;
@@ -136,6 +135,7 @@ int new_red_num_obj = 0;
 #define NO_BALL 0
 #define BLUE_FLAG 1
 #define ORANGE_FLAG 2
+#define COLLECTOR_OFFSET 0.625
 int ball_track_flag = NO_BALL;
 
 float Kp_ball = 0.05;
@@ -192,7 +192,7 @@ int ball_collected = 0;
 #define H_COST 1
 #define G_MOVE_COST 1
 #define G_TURN_COST 1
-#define HITS_THRESHOLD 40
+#define HITS_THRESHOLD 35
 #define REC_CNT_THRESHOLD 3
 
 // Structure Declerations
